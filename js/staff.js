@@ -8,11 +8,11 @@ let selectedDates = []; // 複数選択された日付を保持
 let currentDisplayYear = new Date().getFullYear();
 let currentDisplayMonth = new Date().getMonth() + 1;
 
-// データキャッシュ
+// データキャッシュ（無効化してリアルタイム更新）
 let shiftsCache = null;
 let requestsCache = null;
 let cacheTimestamp = 0;
-const CACHE_DURATION = 30000; // 30秒間キャッシュを保持
+const CACHE_DURATION = 0; // キャッシュを無効化（即座に反映）
 
 // ページ読み込み時
 document.addEventListener('DOMContentLoaded', () => {

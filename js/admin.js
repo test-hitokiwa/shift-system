@@ -8,12 +8,12 @@ let allUsers = [];
 let allRequests = [];
 let allShifts = [];
 
-// データキャッシュ
+// データキャッシュ（無効化してリアルタイム更新）
 let usersCache = null;
 let shiftsCache = null;
 let requestsCache = null;
 let cacheTimestamp = 0;
-const CACHE_DURATION = 30000; // 30秒間キャッシュを保持
+const CACHE_DURATION = 0; // キャッシュを無効化（即座に反映）
 
 // ページ読み込み時
 document.addEventListener('DOMContentLoaded', async () => {
