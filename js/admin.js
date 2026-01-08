@@ -243,14 +243,22 @@ function displayRequests(requests) {
 // 希望シフトを承認
 async function approveRequest(requestId) {
     try {
+        // 既存データを取得
+        const getResponse = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`);
+        if (!getResponse.ok) {
+            throw new Error('データの取得に失敗しました');
+        }
+        const requestData = await getResponse.json();
+        
+        // ステータスを更新して PUT
+        requestData.status = 'approved';
+        
         const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
-            method: 'PATCH',
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                status: 'approved'
-            })
+            body: JSON.stringify(requestData)
         });
         
         if (response.ok) {
@@ -262,21 +270,29 @@ async function approveRequest(requestId) {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('承認に失敗しました');
+        alert('承認に失敗しました: ' + error.message);
     }
 }
 
 // 承認を取り消す
 async function unapproveRequest(requestId) {
     try {
+        // 既存データを取得
+        const getResponse = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`);
+        if (!getResponse.ok) {
+            throw new Error('データの取得に失敗しました');
+        }
+        const requestData = await getResponse.json();
+        
+        // ステータスを更新して PUT
+        requestData.status = 'pending';
+        
         const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
-            method: 'PATCH',
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                status: 'pending'
-            })
+            body: JSON.stringify(requestData)
         });
         
         if (response.ok) {
