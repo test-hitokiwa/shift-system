@@ -1,5 +1,8 @@
 // スタッフページの処理
 
+// APIベースURL
+const API_BASE_URL = 'https://hito-kiwa.co.jp/api';
+
 let currentUser = null;
 let selectedDates = []; // 複数選択された日付を保持
 let currentDisplayYear = new Date().getFullYear();
@@ -92,8 +95,8 @@ async function getCachedShiftData() {
     
     // キャッシュが無効な場合は新規取得
     const [requestsResponse, shiftsResponse] = await Promise.all([
-        fetch('tables/shift_requests?limit=100'),
-        fetch('tables/shifts?limit=100')
+        fetch(API_BASE_URL + '/tables/shift_requests?limit=100'),
+        fetch(API_BASE_URL + '/tables/shifts?limit=100')
     ]);
     
     const requestsResult = await requestsResponse.json();
@@ -341,7 +344,7 @@ async function submitRequest() {
                 notes: notes
             };
             
-            const response = await fetch('tables/shift_requests', {
+            const response = await fetch(API_BASE_URL + '/tables/shift_requests', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -579,7 +582,7 @@ function generateCalendar(year, month, shifts, requests) {
 // シフト詳細を表示（スタッフは閲覧のみ）
 async function showShiftDetail(shiftId) {
     try {
-        const response = await fetch(`tables/shifts/${shiftId}`);
+        const response = await fetch(`${API_BASE_URL}/tables/shifts/${shiftId}`);
         const shift = await response.json();
         
         const content = `
@@ -606,7 +609,7 @@ function closeShiftDetailModal() {
 // 希望シフト詳細を表示（承認済み用）
 async function showRequestDetail(requestId) {
     try {
-        const response = await fetch(`tables/shift_requests/${requestId}`);
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`);
         const request = await response.json();
         
         const timeSlots = Array.isArray(request.time_slots) ? request.time_slots.join(', ') : request.time_slots;
@@ -672,7 +675,7 @@ async function saveStaffQuickCreate() {
             notes: notes
         };
         
-        const response = await fetch('tables/shift_requests', {
+        const response = await fetch(API_BASE_URL + '/tables/shift_requests', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -697,7 +700,7 @@ async function saveStaffQuickCreate() {
 // 希望シフト編集モーダルを開く（共通処理）
 async function openRequestEditModal(requestId) {
     try {
-        const response = await fetch(`tables/shift_requests/${requestId}`);
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`);
         const request = await response.json();
         
         // 未承認のみ編集可能
@@ -784,7 +787,7 @@ async function saveEditedRequest() {
             notes: notes
         };
         
-        const response = await fetch(`tables/shift_requests/${requestId}`, {
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
@@ -821,7 +824,7 @@ async function deleteRequestFromModal() {
     }
     
     try {
-        const response = await fetch(`tables/shift_requests/${requestId}`, {
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
             method: 'DELETE'
         });
         
@@ -847,7 +850,7 @@ async function deleteMyRequest(requestId) {
     }
     
     try {
-        const response = await fetch(`tables/shift_requests/${requestId}`, {
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
             method: 'DELETE'
         });
         

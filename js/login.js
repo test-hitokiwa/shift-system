@@ -1,5 +1,8 @@
 // ログイン処理
 
+// APIベースURL（絶対パス）
+const API_BASE_URL = 'https://hito-kiwa.co.jp/api';
+
 let allUsers = [];
 
 // ページ読み込み時にユーザー一覧を取得
@@ -17,8 +20,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ユーザー一覧を読み込む
 async function loadUsers() {
     try {
-        const response = await fetch('tables/users');
+        console.log('ユーザー読み込み開始:', API_BASE_URL + '/tables/users');
+        const response = await fetch(API_BASE_URL + '/tables/users');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
+        console.log('ユーザー読み込み成功:', result);
         
         allUsers = result.data;
         
@@ -33,9 +43,11 @@ async function loadUsers() {
             option.dataset.name = user.name;
             userSelect.appendChild(option);
         });
+        
+        console.log('ユーザー選択肢を設定しました:', result.data.length + '人');
     } catch (error) {
         console.error('ユーザー読み込みエラー:', error);
-        alert('ユーザー情報の読み込みに失敗しました');
+        alert('ユーザー情報の読み込みに失敗しました。\n\nエラー: ' + error.message + '\n\nAPIのURL: ' + API_BASE_URL + '/tables/users');
     }
 }
 

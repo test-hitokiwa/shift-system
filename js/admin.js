@@ -1,5 +1,8 @@
 // 管理者ページの処理
 
+// APIベースURL
+const API_BASE_URL = 'https://hito-kiwa.co.jp/api';
+
 let currentUser = null;
 let allUsers = [];
 let allRequests = [];
@@ -111,9 +114,9 @@ async function getCachedData() {
     
     // キャッシュが無効な場合は新規取得
     const [usersResponse, shiftsResponse, requestsResponse] = await Promise.all([
-        fetch('tables/users'),
-        fetch('tables/shifts?limit=100'),
-        fetch('tables/shift_requests?limit=100')
+        fetch(API_BASE_URL + '/tables/users'),
+        fetch(API_BASE_URL + '/tables/shifts?limit=100'),
+        fetch(API_BASE_URL + '/tables/shift_requests?limit=100')
     ]);
     
     const [usersResult, shiftsResult, requestsResult] = await Promise.all([
@@ -240,7 +243,7 @@ function displayRequests(requests) {
 // 希望シフトを承認
 async function approveRequest(requestId) {
     try {
-        const response = await fetch(`tables/shift_requests/${requestId}`, {
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
@@ -266,7 +269,7 @@ async function approveRequest(requestId) {
 // 承認を取り消す
 async function unapproveRequest(requestId) {
     try {
-        const response = await fetch(`tables/shift_requests/${requestId}`, {
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
@@ -296,7 +299,7 @@ async function deleteRequest(requestId) {
     }
     
     try {
-        const response = await fetch(`tables/shift_requests/${requestId}`, {
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
             method: 'DELETE'
         });
         
@@ -368,7 +371,7 @@ async function saveRequestEdit() {
             notes: notes
         };
         
-        const response = await fetch('tables/shifts', {
+        const response = await fetch(API_BASE_URL + '/tables/shifts', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -378,7 +381,7 @@ async function saveRequestEdit() {
         
         if (response.ok) {
             // 希望シフトを承認済みに更新
-            await fetch(`tables/shift_requests/${requestId}`, {
+            await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json'
@@ -428,7 +431,7 @@ async function createShift() {
             notes: notes
         };
         
-        const response = await fetch('tables/shifts', {
+        const response = await fetch(API_BASE_URL + '/tables/shifts', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -529,7 +532,7 @@ async function deleteShift(shiftId) {
     }
     
     try {
-        const response = await fetch(`tables/shifts/${shiftId}`, {
+        const response = await fetch(`${API_BASE_URL}/tables/shifts/${shiftId}`, {
             method: 'DELETE'
         });
         
@@ -589,7 +592,7 @@ function openAddUserModal() {
 // ユーザー編集モーダルを開く
 window.editUser = async function(userId) {
     try {
-        const response = await fetch(`tables/users/${userId}`);
+        const response = await fetch(`${API_BASE_URL}/tables/users/${userId}`);
         const user = await response.json();
         
         document.getElementById('userModalTitle').textContent = 'ユーザー編集';
@@ -632,7 +635,7 @@ async function saveUserFromModal() {
         let response;
         if (userId) {
             // 更新
-            response = await fetch(`tables/users/${userId}`, {
+            response = await fetch(`${API_BASE_URL}/tables/users/${userId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -646,7 +649,7 @@ async function saveUserFromModal() {
             }
         } else {
             // 新規作成
-            response = await fetch('tables/users', {
+            response = await fetch(API_BASE_URL + '/tables/users', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -677,8 +680,8 @@ async function saveUserFromModal() {
 async function updateUserNameInShifts(userId, newName) {
     try {
         const [shiftsResponse, requestsResponse] = await Promise.all([
-            fetch('tables/shifts?limit=1000'),
-            fetch('tables/shift_requests?limit=1000')
+            fetch(API_BASE_URL + '/tables/shifts?limit=1000'),
+            fetch(API_BASE_URL + '/tables/shift_requests?limit=1000')
         ]);
         
         const shiftsResult = await shiftsResponse.json();
@@ -691,7 +694,7 @@ async function updateUserNameInShifts(userId, newName) {
             if (shift.user_id === userId) {
                 const updatedShift = { ...shift, user_name: newName };
                 updatePromises.push(
-                    fetch(`tables/shifts/${shift.id}`, {
+                    fetch(`${API_BASE_URL}/tables/shifts/${shift.id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(updatedShift)
@@ -705,7 +708,7 @@ async function updateUserNameInShifts(userId, newName) {
             if (request.user_id === userId) {
                 const updatedRequest = { ...request, user_name: newName };
                 updatePromises.push(
-                    fetch(`tables/shift_requests/${request.id}`, {
+                    fetch(`${API_BASE_URL}/tables/shift_requests/${request.id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(updatedRequest)
@@ -729,8 +732,8 @@ window.deleteUser = async function(userId) {
     try {
         // ユーザーに関連するシフトを取得
         const [shiftsResponse, requestsResponse] = await Promise.all([
-            fetch('tables/shifts?limit=1000'),
-            fetch('tables/shift_requests?limit=1000')
+            fetch(API_BASE_URL + '/tables/shifts?limit=1000'),
+            fetch(API_BASE_URL + '/tables/shift_requests?limit=1000')
         ]);
         
         const shiftsResult = await shiftsResponse.json();
@@ -743,17 +746,17 @@ window.deleteUser = async function(userId) {
         const deletePromises = [];
         
         userShifts.forEach(shift => {
-            deletePromises.push(fetch(`tables/shifts/${shift.id}`, { method: 'DELETE' }));
+            deletePromises.push(fetch(`${API_BASE_URL}/tables/shifts/${shift.id}`, { method: 'DELETE' }));
         });
         
         userRequests.forEach(request => {
-            deletePromises.push(fetch(`tables/shift_requests/${request.id}`, { method: 'DELETE' }));
+            deletePromises.push(fetch(`${API_BASE_URL}/tables/shift_requests/${request.id}`, { method: 'DELETE' }));
         });
         
         await Promise.all(deletePromises);
         
         // ユーザーを削除
-        const response = await fetch(`tables/users/${userId}`, {
+        const response = await fetch(`${API_BASE_URL}/tables/users/${userId}`, {
             method: 'DELETE'
         });
         
@@ -1120,7 +1123,7 @@ async function openMgmtModal(type, id) {
     try {
         let data;
         if (type === 'request') {
-            const response = await fetch(`tables/shift_requests/${id}`);
+            const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`);
             data = await response.json();
             
             document.getElementById('mgmtModalTitle').textContent = '希望シフト管理';
@@ -1148,7 +1151,7 @@ async function openMgmtModal(type, id) {
             
             document.getElementById('mgmtDeleteBtn').style.display = 'inline-block';
         } else {
-            const response = await fetch(`tables/shifts/${id}`);
+            const response = await fetch(`${API_BASE_URL}/tables/shifts/${id}`);
             data = await response.json();
             
             document.getElementById('mgmtModalTitle').textContent = '確定シフト管理';
@@ -1238,7 +1241,7 @@ async function saveQuickCreate() {
                 notes: notes
             };
             
-            await fetch('tables/shifts', {
+            await fetch(API_BASE_URL + '/tables/shifts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(shiftData)
@@ -1254,7 +1257,7 @@ async function saveQuickCreate() {
                 notes: notes
             };
             
-            await fetch('tables/shift_requests', {
+            await fetch(API_BASE_URL + '/tables/shift_requests', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestData)
@@ -1285,7 +1288,7 @@ async function saveMgmtShift() {
     
     try {
         if (type === 'request') {
-            const response = await fetch(`tables/shift_requests/${id}`);
+            const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`);
             const request = await response.json();
             
             const updatedData = {
@@ -1294,13 +1297,13 @@ async function saveMgmtShift() {
                 notes: notes
             };
             
-            await fetch(`tables/shift_requests/${id}`, {
+            await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedData)
             });
         } else {
-            const response = await fetch(`tables/shifts/${id}`);
+            const response = await fetch(`${API_BASE_URL}/tables/shifts/${id}`);
             const shift = await response.json();
             
             const updatedData = {
@@ -1310,7 +1313,7 @@ async function saveMgmtShift() {
                 notes: notes
             };
             
-            await fetch(`tables/shifts/${id}`, {
+            await fetch(`${API_BASE_URL}/tables/shifts/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedData)
@@ -1331,10 +1334,10 @@ async function approveMgmtRequest() {
     const id = document.getElementById('mgmtItemId').value;
     
     try {
-        const response = await fetch(`tables/shift_requests/${id}`);
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`);
         const request = await response.json();
         
-        await fetch(`tables/shift_requests/${id}`, {
+        await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'approved' })
@@ -1354,7 +1357,7 @@ async function unapproveMgmtRequest() {
     const id = document.getElementById('mgmtItemId').value;
     
     try {
-        await fetch(`tables/shift_requests/${id}`, {
+        await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'pending' })
@@ -1380,7 +1383,7 @@ async function deleteMgmtItem() {
     
     try {
         const endpoint = type === 'request' ? 'shift_requests' : 'shifts';
-        await fetch(`tables/${endpoint}/${id}`, { method: 'DELETE' });
+        await fetch(`${API_BASE_URL}/tables/${endpoint}/${id}`, { method: 'DELETE' });
         
         alert('削除しました');
         closeMgmtModal();
@@ -1431,7 +1434,7 @@ function formatDate(dateString) {
 // シフト編集モーダルを開く
 window.openShiftEdit = async function(shiftId) {
     try {
-        const response = await fetch(`tables/shifts/${shiftId}`);
+        const response = await fetch(`${API_BASE_URL}/tables/shifts/${shiftId}`);
         const shift = await response.json();
         
         document.getElementById('editShiftId').value = shift.id;
@@ -1493,7 +1496,7 @@ async function saveShiftEdit() {
             notes: notes
         };
         
-        const response = await fetch(`tables/shifts/${shiftId}`, {
+        const response = await fetch(`${API_BASE_URL}/tables/shifts/${shiftId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -1524,7 +1527,7 @@ async function deleteShiftFromModal() {
     }
     
     try {
-        const response = await fetch(`tables/shifts/${shiftId}`, {
+        const response = await fetch(`${API_BASE_URL}/tables/shifts/${shiftId}`, {
             method: 'DELETE'
         });
         
@@ -1613,7 +1616,7 @@ async function saveGeneralQuickCreate() {
                 notes: notes
             };
             
-            await fetch('tables/shifts', {
+            await fetch(API_BASE_URL + '/tables/shifts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(shiftData)
@@ -1629,7 +1632,7 @@ async function saveGeneralQuickCreate() {
                 notes: notes
             };
             
-            await fetch('tables/shift_requests', {
+            await fetch(API_BASE_URL + '/tables/shift_requests', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestData)
