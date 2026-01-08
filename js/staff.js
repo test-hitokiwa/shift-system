@@ -782,17 +782,17 @@ async function saveEditedRequest() {
     }
     
     try {
-        const requestData = {
-            time_slots: [`${startTime}-${endTime}`],
-            notes: notes
-        };
-        
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
-            method: 'PATCH',
+        // POST で更新（PATCH が使えないため）
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_update.php`, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestData)
+            body: JSON.stringify({
+                id: requestId,
+                time_slots: [`${startTime}-${endTime}`],
+                notes: notes
+            })
         });
         
         if (response.ok) {
@@ -802,11 +802,12 @@ async function saveEditedRequest() {
             loadMyRequests();
             loadCalendar();
         } else {
-            throw new Error('更新に失敗しました');
+            const error = await response.json();
+            throw new Error(error.error || '更新に失敗しました');
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('希望シフトの更新に失敗しました');
+        alert('希望シフトの更新に失敗しました: ' + error.message);
     }
 }
 

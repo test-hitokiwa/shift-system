@@ -243,22 +243,16 @@ function displayRequests(requests) {
 // 希望シフトを承認
 async function approveRequest(requestId) {
     try {
-        // 既存データを取得
-        const getResponse = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`);
-        if (!getResponse.ok) {
-            throw new Error('データの取得に失敗しました');
-        }
-        const requestData = await getResponse.json();
-        
-        // ステータスを更新して PUT
-        requestData.status = 'approved';
-        
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
-            method: 'PUT',
+        // POST で承認処理（PUT/PATCH が使えないため）
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_approve.php`, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestData)
+            body: JSON.stringify({
+                id: requestId,
+                action: 'approve'
+            })
         });
         
         if (response.ok) {
@@ -266,7 +260,8 @@ async function approveRequest(requestId) {
             clearCache();
             loadShiftRequests();
         } else {
-            throw new Error('承認に失敗しました');
+            const error = await response.json();
+            throw new Error(error.error || '承認に失敗しました');
         }
     } catch (error) {
         console.error('エラー:', error);
@@ -277,22 +272,16 @@ async function approveRequest(requestId) {
 // 承認を取り消す
 async function unapproveRequest(requestId) {
     try {
-        // 既存データを取得
-        const getResponse = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`);
-        if (!getResponse.ok) {
-            throw new Error('データの取得に失敗しました');
-        }
-        const requestData = await getResponse.json();
-        
-        // ステータスを更新して PUT
-        requestData.status = 'pending';
-        
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
-            method: 'PUT',
+        // POST で承認取り消し処理（PUT/PATCH が使えないため）
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_approve.php`, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestData)
+            body: JSON.stringify({
+                id: requestId,
+                action: 'unapprove'
+            })
         });
         
         if (response.ok) {
@@ -300,7 +289,8 @@ async function unapproveRequest(requestId) {
             clearCache();
             loadShiftRequests();
         } else {
-            throw new Error('承認取り消しに失敗しました');
+            const error = await response.json();
+            throw new Error(error.error || '承認取り消しに失敗しました');
         }
     } catch (error) {
         console.error('エラー:', error);
@@ -396,14 +386,15 @@ async function saveRequestEdit() {
         });
         
         if (response.ok) {
-            // 希望シフトを承認済みに更新
-            await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
-                method: 'PATCH',
+            // 希望シフトを承認済みに更新（POST で）
+            await fetch(`${API_BASE_URL}/tables/shift_requests_approve.php`, {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    status: 'approved'
+                    id: requestId,
+                    action: 'approve'
                 })
             });
             
@@ -650,13 +641,18 @@ async function saveUserFromModal() {
         
         let response;
         if (userId) {
-            // 更新
-            response = await fetch(`${API_BASE_URL}/tables/users/${userId}`, {
-                method: 'PUT',
+            // 更新（POST で）
+            response = await fetch(`${API_BASE_URL}/tables/users_update.php`, {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(userData)
+                body: JSON.stringify({
+                    id: userId,
+                    name: name,
+                    role: role,
+                    password: password
+                })
             });
             
             // ユーザー名が変更された場合、関連するシフトと希望シフトも更新
@@ -705,29 +701,33 @@ async function updateUserNameInShifts(userId, newName) {
         
         const updatePromises = [];
         
-        // シフトのユーザー名を更新
+        // シフトのユーザー名を更新（POST で）
         shiftsResult.data.forEach(shift => {
             if (shift.user_id === userId) {
-                const updatedShift = { ...shift, user_name: newName };
                 updatePromises.push(
-                    fetch(`${API_BASE_URL}/tables/shifts/${shift.id}`, {
-                        method: 'PUT',
+                    fetch(`${API_BASE_URL}/tables/shifts_update.php`, {
+                        method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(updatedShift)
+                        body: JSON.stringify({
+                            id: shift.id,
+                            user_name: newName
+                        })
                     })
                 );
             }
         });
         
-        // 希望シフトのユーザー名を更新
+        // 希望シフトのユーザー名を更新（POST で）
         requestsResult.data.forEach(request => {
             if (request.user_id === userId) {
-                const updatedRequest = { ...request, user_name: newName };
                 updatePromises.push(
-                    fetch(`${API_BASE_URL}/tables/shift_requests/${request.id}`, {
-                        method: 'PUT',
+                    fetch(`${API_BASE_URL}/tables/shift_requests_update.php`, {
+                        method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(updatedRequest)
+                        body: JSON.stringify({
+                            id: request.id,
+                            user_name: newName
+                        })
                     })
                 );
             }
@@ -1304,35 +1304,27 @@ async function saveMgmtShift() {
     
     try {
         if (type === 'request') {
-            const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`);
-            const request = await response.json();
-            
-            const updatedData = {
-                ...request,
-                time_slots: [`${startTime}-${endTime}`],
-                notes: notes
-            };
-            
-            await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`, {
-                method: 'PUT',
+            // 希望シフトの更新（POST で）
+            await fetch(`${API_BASE_URL}/tables/shift_requests_update.php`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedData)
+                body: JSON.stringify({
+                    id: id,
+                    time_slots: [`${startTime}-${endTime}`],
+                    notes: notes
+                })
             });
         } else {
-            const response = await fetch(`${API_BASE_URL}/tables/shifts/${id}`);
-            const shift = await response.json();
-            
-            const updatedData = {
-                ...shift,
-                start_time: startTime,
-                end_time: endTime,
-                notes: notes
-            };
-            
-            await fetch(`${API_BASE_URL}/tables/shifts/${id}`, {
-                method: 'PUT',
+            // シフトの更新（POST で）
+            await fetch(`${API_BASE_URL}/tables/shifts_update.php`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedData)
+                body: JSON.stringify({
+                    id: id,
+                    start_time: startTime,
+                    end_time: endTime,
+                    notes: notes
+                })
             });
         }
         
@@ -1350,13 +1342,14 @@ async function approveMgmtRequest() {
     const id = document.getElementById('mgmtItemId').value;
     
     try {
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`);
-        const request = await response.json();
-        
-        await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`, {
-            method: 'PATCH',
+        // POST で承認処理
+        await fetch(`${API_BASE_URL}/tables/shift_requests_approve.php`, {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'approved' })
+            body: JSON.stringify({ 
+                id: id,
+                action: 'approve'
+            })
         });
         
         alert('承認しました');
@@ -1512,12 +1505,22 @@ async function saveShiftEdit() {
             notes: notes
         };
         
-        const response = await fetch(`${API_BASE_URL}/tables/shifts/${shiftId}`, {
-            method: 'PUT',
+        // POST で更新（PUT が使えないため）
+        const response = await fetch(`${API_BASE_URL}/tables/shifts_update.php`, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(shiftData)
+            body: JSON.stringify({
+                id: shiftId,
+                user_id: userId,
+                user_name: userName,
+                date: date,
+                start_time: startTime,
+                end_time: endTime,
+                is_confirmed: true,
+                notes: notes
+            })
         });
         
         if (response.ok) {
@@ -1526,7 +1529,8 @@ async function saveShiftEdit() {
             loadShifts();
             loadCalendar();
         } else {
-            throw new Error('更新に失敗しました');
+            const error = await response.json();
+            throw new Error(error.error || '更新に失敗しました');
         }
     } catch (error) {
         console.error('エラー:', error);
