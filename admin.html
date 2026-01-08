@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シフト調整システム - 管理者</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="admin-page">
+    <div class="container">
+        <header>
+            <h1>シフト調整システム</h1>
+            <p class="subtitle">管理者ページ</p>
+        </header>
+
+        <nav>
+            <div class="nav-info">
+                <strong id="userName"></strong> さん（管理者）
+            </div>
+            <button class="btn-logout" onclick="logout()">ログアウト</button>
+        </nav>
+
+        <main>
+            <!-- タブナビゲーション -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('management')">シフト管理</button>
+                <button class="tab" onclick="switchTab('requests')">希望シフト一覧</button>
+                <button class="tab" onclick="switchTab('shifts')">シフト作成</button>
+                <button class="tab" onclick="switchTab('users')">ユーザー管理</button>
+                <button class="tab" onclick="switchTab('calendar')">カレンダー</button>
+            </div>
+
+            <!-- シフト管理タブ（新規） -->
+            <div id="managementTab" class="tab-content">
+                <div class="filter-section">
+                    <div class="filter-row">
+                        <div class="form-group">
+                            <label for="mgmtMonth">表示月</label>
+                            <input type="month" id="mgmtMonth" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="mgmtStaff">スタッフ</label>
+                            <select id="mgmtStaff" class="form-control">
+                                <option value="">選択してください</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadManagementCalendar()">更新</button>
+                </div>
+
+                <!-- 週ごとの合計時間 -->
+                <div id="weeklyTotals" style="margin-bottom: 20px;"></div>
+
+                <!-- シフト管理カレンダー -->
+                <div id="managementCalendarView"></div>
+            </div>
+
+            <!-- 希望シフト一覧タブ -->
+            <div id="requestsTab" class="tab-content">
+                <div class="filter-section">
+                    <div class="form-group">
+                        <label for="filterDate">日付でフィルター</label>
+                        <input type="date" id="filterDate" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="filterStatus">ステータス</label>
+                        <select id="filterStatus" class="form-control">
+                            <option value="all">すべて</option>
+                            <option value="pending">未確認</option>
+                            <option value="approved">承認済み</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadShiftRequests()">更新</button>
+                </div>
+
+                <div id="requestsList"></div>
+            </div>
+
+            <!-- シフト管理タブ -->
+            <div id="shiftsTab" class="tab-content" style="display: none;">
+                <div class="shift-form">
+                    <h3>新しいシフトを作成</h3>
+                    <div class="form-group">
+                        <label for="shiftUser">スタッフ</label>
+                        <select id="shiftUser" class="form-control">
+                            <option value="">選択してください</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="shiftDate">勤務日</label>
+                        <input type="date" id="shiftDate" class="form-control">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="shiftStartTime">開始時刻</label>
+                            <input type="time" id="shiftStartTime" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="shiftEndTime">終了時刻</label>
+                            <input type="time" id="shiftEndTime" class="form-control">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="shiftNotes">備考・メモ（任意）</label>
+                        <textarea id="shiftNotes" class="form-control"></textarea>
+                    </div>
+                    <button class="btn btn-success" onclick="createShift()">シフトを作成</button>
+                </div>
+
+                <div class="filter-section">
+                    <div class="form-group">
+                        <label for="shiftFilterMonth">表示月</label>
+                        <input type="month" id="shiftFilterMonth" class="form-control">
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadShifts()">更新</button>
+                </div>
+
+                <div id="shiftsList"></div>
+            </div>
+
+            <!-- ユーザー管理タブ -->
+            <div id="usersTab" class="tab-content" style="display: none;">
+                <button class="btn btn-primary" style="margin-bottom: 20px;" onclick="openAddUserModal()">新しいユーザーを追加</button>
+                <div id="usersList"></div>
+            </div>
+
+            <!-- カレンダータブ -->
+            <div id="calendarTab" class="tab-content" style="display: none;">
+                <div class="filter-section">
+                    <div class="form-group">
+                        <label for="calendarMonth">表示月</label>
+                        <input type="month" id="calendarMonth" class="form-control">
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadCalendar()">更新</button>
+                </div>
+
+                <!-- 未承認カレンダー -->
+                <div class="calendar-section">
+                    <h2 class="calendar-section-title">未承認の希望シフト</h2>
+                    <div id="pendingCalendarView"></div>
+                </div>
+
+                <!-- 承認済みカレンダー -->
+                <div class="calendar-section">
+                    <h2 class="calendar-section-title">承認済み・確定シフト</h2>
+                    <div id="approvedCalendarView"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- シフト調整モーダル -->
+    <div id="editModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>シフト調整</h3>
+            <input type="hidden" id="editRequestId">
+            <div class="form-group">
+                <label for="editStartTime">開始時刻</label>
+                <select id="editStartTime" class="form-control"></select>
+            </div>
+            <div class="form-group">
+                <label for="editEndTime">終了時刻</label>
+                <select id="editEndTime" class="form-control"></select>
+            </div>
+            <div class="form-group">
+                <label for="editNotes">備考</label>
+                <textarea id="editNotes" class="form-control"></textarea>
+            </div>
+            <button class="btn btn-success" onclick="saveRequestEdit()">保存してシフト作成</button>
+            <button class="btn btn-secondary" onclick="closeEditModal()">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- ユーザー編集モーダル -->
+    <div id="userEditModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3 id="userModalTitle">ユーザー編集</h3>
+            <input type="hidden" id="modalUserId">
+            <div class="form-group">
+                <label for="modalUserName">ユーザー名</label>
+                <input type="text" id="modalUserName" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="modalUserRole">役割</label>
+                <select id="modalUserRole" class="form-control">
+                    <option value="staff">スタッフ</option>
+                    <option value="admin">管理者</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="modalUserPassword">パスワード</label>
+                <input type="text" id="modalUserPassword" class="form-control">
+            </div>
+            <button class="btn btn-success" onclick="saveUserFromModal()">保存</button>
+            <button class="btn btn-secondary" onclick="closeUserEditModal()">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- シフト編集モーダル -->
+    <div id="shiftEditModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>シフト編集</h3>
+            <input type="hidden" id="editShiftId">
+            <div class="form-group">
+                <label for="editShiftUser">スタッフ</label>
+                <select id="editShiftUser" class="form-control"></select>
+            </div>
+            <div class="form-group">
+                <label for="editShiftDate">勤務日</label>
+                <input type="date" id="editShiftDate" class="form-control">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="editShiftStartTime">開始時刻</label>
+                    <input type="time" id="editShiftStartTime" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="editShiftEndTime">終了時刻</label>
+                    <input type="time" id="editShiftEndTime" class="form-control">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="editShiftNotes">備考</label>
+                <textarea id="editShiftNotes" class="form-control"></textarea>
+            </div>
+            <button class="btn btn-success" onclick="saveShiftEdit()">保存</button>
+            <button class="btn btn-danger" onclick="deleteShiftFromModal()">削除</button>
+            <button class="btn btn-secondary" onclick="closeShiftEditModal()">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- シフト管理モーダル（希望シフト・確定シフト統合） -->
+    <div id="mgmtModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3 id="mgmtModalTitle">シフト管理</h3>
+            <input type="hidden" id="mgmtItemId">
+            <input type="hidden" id="mgmtItemType">
+            
+            <div id="mgmtShiftInfo" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <!-- シフト情報がここに表示される -->
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="mgmtStartTime">開始時刻</label>
+                    <input type="time" id="mgmtStartTime" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="mgmtEndTime">終了時刻</label>
+                    <input type="time" id="mgmtEndTime" class="form-control">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="mgmtNotes">備考</label>
+                <textarea id="mgmtNotes" class="form-control"></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-success" onclick="saveMgmtShift()">保存</button>
+                <button class="btn btn-primary" id="mgmtApproveBtn" onclick="approveMgmtRequest()" style="display: none;">承認</button>
+                <button class="btn btn-secondary" id="mgmtUnapproveBtn" onclick="unapproveMgmtRequest()" style="display: none;">承認取消</button>
+                <button class="btn btn-danger" id="mgmtDeleteBtn" onclick="deleteMgmtItem()">削除</button>
+                <button class="btn btn-secondary" onclick="closeMgmtModal()">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新規シフト作成モーダル（空白日クリック用） -->
+    <div id="quickCreateModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>シフト作成</h3>
+            <input type="hidden" id="quickCreateDate">
+            <input type="hidden" id="quickCreateUserId">
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <p><strong>日付:</strong> <span id="quickCreateDateDisplay"></span></p>
+                <p><strong>スタッフ:</strong> <span id="quickCreateUserDisplay"></span></p>
+            </div>
+
+            <div class="form-group">
+                <label>作成タイプ</label>
+                <select id="quickCreateType" class="form-control">
+                    <option value="shift">確定シフト</option>
+                    <option value="request">希望シフト</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="quickStartTime">開始時刻</label>
+                    <input type="time" id="quickStartTime" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="quickEndTime">終了時刻</label>
+                    <input type="time" id="quickEndTime" class="form-control">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="quickNotes">備考</label>
+                <textarea id="quickNotes" class="form-control"></textarea>
+            </div>
+            <button class="btn btn-success" onclick="saveQuickCreate()">作成</button>
+            <button class="btn btn-secondary" onclick="closeQuickCreateModal()">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- カレンダータブ用シフト作成モーダル -->
+    <div id="generalQuickCreateModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>シフト作成</h3>
+            <input type="hidden" id="generalQuickDate">
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <p><strong>日付:</strong> <span id="generalQuickDateDisplay"></span></p>
+            </div>
+
+            <div class="form-group">
+                <label for="generalQuickStaff">スタッフ</label>
+                <select id="generalQuickStaff" class="form-control">
+                    <option value="">選択してください</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>作成タイプ</label>
+                <select id="generalQuickType" class="form-control">
+                    <option value="shift">確定シフト</option>
+                    <option value="request">希望シフト</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="generalQuickStartTime">開始時刻</label>
+                    <input type="time" id="generalQuickStartTime" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="generalQuickEndTime">終了時刻</label>
+                    <input type="time" id="generalQuickEndTime" class="form-control">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="generalQuickNotes">備考</label>
+                <textarea id="generalQuickNotes" class="form-control"></textarea>
+            </div>
+            <button class="btn btn-success" onclick="saveGeneralQuickCreate()">作成</button>
+            <button class="btn btn-secondary" onclick="closeGeneralQuickCreateModal()">キャンセル</button>
+        </div>
+    </div>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シフト調整システム - ログイン</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>シフト調整システム</h1>
+            <p class="subtitle">ログインしてください</p>
+        </header>
+
+        <main>
+            <div class="login-section">
+                <div class="form-group">
+                    <label for="userSelect">ユーザーを選択</label>
+                    <select id="userSelect" class="form-control">
+                        <option value="">選択してください</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">パスワード</label>
+                    <input type="password" id="password" class="form-control" placeholder="パスワードを入力">
+                </div>
+
+                <button id="loginBtn" class="btn btn-primary">ログイン</button>
+            </div>
+
+            <div class="info-box">
+                <h3>システムについて</h3>
+                <ul>
+                    <li><strong>バイトスタッフ：</strong>希望シフトの提出と確定シフトの確認ができます</li>
+                    <li><strong>管理者：</strong>希望シフトの確認・調整・確定ができます</li>
+                </ul>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/login.js"></script>
+</body>
+</html>
