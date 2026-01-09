@@ -14,17 +14,21 @@
         </header>
 
         <main>
-            <form class="login-section" autocomplete="off">
+            <form class="login-section" autocomplete="off" onsubmit="return false;">
+                <!-- Chrome対策: 隠しフィールドでautocompleteを無効化 -->
+                <input type="text" style="display:none" />
+                <input type="password" style="display:none" />
+                
                 <div class="form-group">
                     <label for="userSelect">ユーザーを選択</label>
-                    <select id="userSelect" class="form-control" autocomplete="off">
+                    <select id="userSelect" class="form-control" autocomplete="off" name="username">
                         <option value="">選択してください</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label for="password">パスワード</label>
-                    <input type="password" id="password" class="form-control" placeholder="パスワードを入力" autocomplete="new-password">
+                    <input type="password" id="password" class="form-control" placeholder="パスワードを入力" autocomplete="new-password" name="password" readonly onfocus="this.removeAttribute('readonly');">
                 </div>
 
                 <button type="button" id="loginBtn" class="btn btn-primary">ログイン</button>
