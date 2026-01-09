@@ -14,21 +14,21 @@
         </header>
 
         <main>
-            <div class="login-section">
+            <form class="login-section" autocomplete="off">
                 <div class="form-group">
                     <label for="userSelect">ユーザーを選択</label>
-                    <select id="userSelect" class="form-control">
+                    <select id="userSelect" class="form-control" autocomplete="off">
                         <option value="">選択してください</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label for="password">パスワード</label>
-                    <input type="password" id="password" class="form-control" placeholder="パスワードを入力">
+                    <input type="password" id="password" class="form-control" placeholder="パスワードを入力" autocomplete="new-password">
                 </div>
 
-                <button id="loginBtn" class="btn btn-primary">ログイン</button>
-            </div>
+                <button type="button" id="loginBtn" class="btn btn-primary">ログイン</button>
+            </form>
 
             <div class="info-box">
                 <h3>システムについて</h3>
