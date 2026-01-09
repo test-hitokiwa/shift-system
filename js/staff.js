@@ -825,8 +825,16 @@ async function deleteRequestFromModal() {
     }
     
     try {
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
-            method: 'DELETE'
+        // POST で削除処理（DELETE が使えないため）
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_update/delete/${requestId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id: requestId,
+                action: 'delete'
+            })
         });
         
         if (response.ok || response.status === 204) {
@@ -840,7 +848,7 @@ async function deleteRequestFromModal() {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('希望シフトの削除に失敗しました');
+        alert('希望シフトの削除に失敗しました: ' + error.message);
     }
 }
 
@@ -851,8 +859,16 @@ async function deleteMyRequest(requestId) {
     }
     
     try {
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
-            method: 'DELETE'
+        // POST で削除処理（DELETE が使えないため）
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_update/delete/${requestId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id: requestId,
+                action: 'delete'
+            })
         });
         
         if (response.ok || response.status === 204) {
