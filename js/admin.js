@@ -906,7 +906,8 @@ function generateRequestCalendar(year, month, requests) {
         if (dayRequests.length > 0) {
             dayRequests.forEach(req => {
                 const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
-                html += `<div class="shift-info" style="cursor: pointer;" onclick="openRequestDetail('${req.id}')">${req.user_name} ${timeSlot}</div>`;
+                // 未承認シフトは黄色で表示
+                html += `<div class="shift-info request-pending" style="cursor: pointer;" onclick="openRequestDetail('${req.id}')">${req.user_name} ${timeSlot}</div>`;
             });
         }
         
@@ -965,18 +966,18 @@ function generateApprovedCalendar(year, month, approvedRequests, confirmedShifts
         html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !isWeekend ? `openGeneralQuickCreate('${dateStr}')` : ''}" style="${!hasData && !isWeekend ? 'cursor: pointer;' : ''}">`;
         html += `<div class="day-number">${day}</div>`;
         
-        // 承認済み希望シフトを表示
+        // 承認済み希望シフトを表示（緑色）
         if (dayApprovedRequests.length > 0) {
             dayApprovedRequests.forEach(req => {
                 const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
-                html += `<div class="shift-info" style="cursor: pointer;" onclick="event.stopPropagation(); openRequestDetail('${req.id}')">${req.user_name} ${timeSlot}</div>`;
+                html += `<div class="shift-info shift-confirmed" style="cursor: pointer;" onclick="event.stopPropagation(); openRequestDetail('${req.id}')">${req.user_name} ${timeSlot}</div>`;
             });
         }
         
-        // 確定シフトを表示
+        // 確定シフトを表示（緑色）
         if (dayConfirmedShifts.length > 0) {
             dayConfirmedShifts.forEach(shift => {
-                html += `<div class="shift-info" style="cursor: pointer;" onclick="event.stopPropagation(); window.openShiftEdit('${shift.id}')">${shift.user_name} ${shift.start_time}-${shift.end_time}</div>`;
+                html += `<div class="shift-info shift-confirmed" style="cursor: pointer;" onclick="event.stopPropagation(); window.openShiftEdit('${shift.id}')">${shift.user_name} ${shift.start_time}-${shift.end_time}</div>`;
             });
         }
         
