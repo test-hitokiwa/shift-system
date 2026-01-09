@@ -385,6 +385,14 @@ textarea.form-control {
     margin-top: 12px;
 }
 
+.shift-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e9ecef;
+}
+
 /* 空の状態 */
 .empty-state {
     text-align: center;
@@ -700,6 +708,22 @@ textarea.form-control {
     border-width: 2px;
 }
 
+.calendar-day.weekend {
+    background: #f8f9fa;
+    opacity: 0.5;
+    cursor: default;
+}
+
+.calendar-day.weekend:hover {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transform: none;
+}
+
+.calendar-day.weekend .day-number {
+    color: #adb5bd;
+    text-decoration: line-through;
+}
+
 .day-number {
     font-weight: 700;
     font-size: 13px;
@@ -743,11 +767,11 @@ textarea.form-control {
     font-weight: 700;
 }
 
-/* 確定シフト（赤色） */
+/* 確定シフト（緑色） */
 .shift-info.shift-confirmed {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    background: linear-gradient(135deg, #28a745 0%, #218838 100%);
     color: white;
-    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.4);
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.4);
     font-weight: 700;
 }
 
@@ -829,11 +853,16 @@ textarea.form-control {
     color: #adb5bd;
     cursor: not-allowed;
     background: #f8f9fa;
+    opacity: 0.6;
 }
 
 .date-calendar-day.disabled:hover {
     border-color: #dee2e6;
     background: #f8f9fa;
+}
+
+.date-calendar-day.disabled .date-num {
+    text-decoration: line-through;
 }
 
 .date-calendar-day.selected {
@@ -877,7 +906,7 @@ textarea.form-control {
 }
 
 .date-calendar-day .mini-shift.confirmed {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    background: linear-gradient(135deg, #28a745 0%, #218838 100%);
     color: white;
 }
 
