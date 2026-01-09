@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シフト調整システム - スタッフ</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>シフト調整システム</h1>
+            <p class="subtitle">スタッフページ</p>
+        </header>
+
+        <nav>
+            <div class="nav-info">
+                <strong id="userName"></strong> さん
+            </div>
+            <button class="btn-logout" onclick="logout()">ログアウト</button>
+        </nav>
+
+        <main>
+            <!-- タブナビゲーション -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('request')">希望シフト提出</button>
+                <button class="tab" onclick="switchTab('confirmed')">確定シフト</button>
+                <button class="tab" onclick="switchTab('calendar')">カレンダー</button>
+            </div>
+
+            <!-- 希望シフト提出タブ -->
+            <div id="requestTab" class="tab-content">
+                <div class="form-group">
+                    <label>希望日を選択（複数選択可能）</label>
+                    <div class="multi-date-selector">
+                        <div class="date-selector-header">
+                            <button type="button" class="btn-small" onclick="previousMonth()">◀</button>
+                            <span id="currentMonthLabel"></span>
+                            <button type="button" class="btn-small" onclick="nextMonth()">▶</button>
+                        </div>
+                        <div id="dateCalendar" class="date-calendar"></div>
+                        <div class="selected-dates-display">
+                            <strong>選択中の日付:</strong>
+                            <div id="selectedDatesList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>希期開始時刻</label>
+                    <select id="requestStartTime" class="form-control">
+                        <!-- JavaScriptで動的に生成 -->
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>希期終了時刻</label>
+                    <select id="requestEndTime" class="form-control">
+                        <!-- JavaScriptで動的に生成 -->
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="requestNotes">備考・メモ（任意）</label>
+                    <textarea id="requestNotes" class="form-control" placeholder="特記事項があれば入力してください"></textarea>
+                </div>
+
+                <button class="btn btn-primary" onclick="submitRequest()">選択した日付すべてに希望シフトを提出</button>
+
+                <div class="info-box">
+                    <h3>提出済みの希望シフト</h3>
+                    <div id="myRequests"></div>
+                </div>
+            </div>
+
+            <!-- 確定シフトタブ -->
+            <div id="confirmedTab" class="tab-content" style="display: none;">
+                <div class="filter-section">
+                    <div class="form-group">
+                        <label for="filterMonth">表示月</label>
+                        <input type="month" id="filterMonth" class="form-control">
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadConfirmedShifts()">更新</button>
+                </div>
+
+                <div id="confirmedShifts"></div>
+            </div>
+
+            <!-- カレンダータブ -->
+            <div id="calendarTab" class="tab-content" style="display: none;">
+                <div class="filter-section">
+                    <div class="form-group">
+                        <label for="calendarMonth">表示月</label>
+                        <input type="month" id="calendarMonth" class="form-control">
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadCalendar()">更新</button>
+                </div>
+
+                <div id="calendarView"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- シフト詳細表示モーダル -->
+    <div id="shiftDetailModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>シフト詳細</h3>
+            <div id="shiftDetailContent"></div>
+            <button class="btn btn-secondary" onclick="closeShiftDetailModal()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 希望シフト作成モーダル（空白日クリック用） -->
+    <div id="staffQuickCreateModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>希望シフト作成</h3>
+            <input type="hidden" id="staffQuickDate">
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <p><strong>日付:</strong> <span id="staffQuickDateDisplay"></span></p>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="staffQuickStartTime">開始時刻</label>
+                    <input type="time" id="staffQuickStartTime" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="staffQuickEndTime">終了時刻</label>
+                    <input type="time" id="staffQuickEndTime" class="form-control">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="staffQuickNotes">備考</label>
+                <textarea id="staffQuickNotes" class="form-control"></textarea>
+            </div>
+            <button class="btn btn-success" onclick="saveStaffQuickCreate()">作成</button>
+            <button class="btn btn-secondary" onclick="closeStaffQuickCreateModal()">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- 希望シフト編集モーダル -->
+    <div id="editRequestModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>希望シフト編集</h3>
+            <input type="hidden" id="editRequestId">
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <p><strong>日付:</strong> <span id="editRequestDate"></span></p>
+            </div>
+
+            <div class="form-group">
+                <label for="editRequestStartTime">開始時刻</label>
+                <select id="editRequestStartTime" class="form-control">
+                    <!-- JavaScriptで動的に生成 -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="editRequestEndTime">終了時刻</label>
+                <select id="editRequestEndTime" class="form-control">
+                    <!-- JavaScriptで動的に生成 -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="editRequestNotes">備考・メモ（任意）</label>
+                <textarea id="editRequestNotes" class="form-control"></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 8px; justify-content: space-between;">
+                <button class="btn btn-danger" onclick="deleteRequestFromModal()">削除</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-success" onclick="saveEditedRequest()">保存</button>
+                    <button class="btn btn-secondary" onclick="closeEditRequestModal()">キャンセル</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/staff.js"></script>
+</body>
+</html>
