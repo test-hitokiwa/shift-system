@@ -8,11 +8,11 @@ let selectedDates = []; // 複数選択された日付を保持
 let currentDisplayYear = new Date().getFullYear();
 let currentDisplayMonth = new Date().getMonth() + 1;
 
-// データキャッシュ（無効化してリアルタイム更新）
+// データキャッシュ
 let shiftsCache = null;
 let requestsCache = null;
 let cacheTimestamp = 0;
-const CACHE_DURATION = 0; // キャッシュを無効化（即座に反映）
+const CACHE_DURATION = 30000; // 30秒間キャッシュを保持
 
 // ページ読み込み時
 document.addEventListener('DOMContentLoaded', () => {
@@ -782,17 +782,17 @@ async function saveEditedRequest() {
     }
     
     try {
-        // POST で更新（PATCH が使えないため）
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_update.php`, {
-            method: 'POST',
+        const requestData = {
+            time_slots: [`${startTime}-${endTime}`],
+            notes: notes
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
+            method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                id: requestId,
-                time_slots: [`${startTime}-${endTime}`],
-                notes: notes
-            })
+            body: JSON.stringify(requestData)
         });
         
         if (response.ok) {
@@ -802,12 +802,11 @@ async function saveEditedRequest() {
             loadMyRequests();
             loadCalendar();
         } else {
-            const error = await response.json();
-            throw new Error(error.error || '更新に失敗しました');
+            throw new Error('更新に失敗しました');
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('希望シフトの更新に失敗しました: ' + error.message);
+        alert('希望シフトの更新に失敗しました');
     }
 }
 
@@ -825,16 +824,8 @@ async function deleteRequestFromModal() {
     }
     
     try {
-        // POST で削除処理（DELETE が使えないため）
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_update/delete/${requestId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                id: requestId,
-                action: 'delete'
-            })
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
+            method: 'DELETE'
         });
         
         if (response.ok || response.status === 204) {
@@ -848,7 +839,7 @@ async function deleteRequestFromModal() {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('希望シフトの削除に失敗しました: ' + error.message);
+        alert('希望シフトの削除に失敗しました');
     }
 }
 
@@ -859,16 +850,8 @@ async function deleteMyRequest(requestId) {
     }
     
     try {
-        // POST で削除処理（DELETE が使えないため）
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_update/delete/${requestId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                id: requestId,
-                action: 'delete'
-            })
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
+            method: 'DELETE'
         });
         
         if (response.ok || response.status === 204) {
