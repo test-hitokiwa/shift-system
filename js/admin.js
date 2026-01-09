@@ -8,12 +8,12 @@ let allUsers = [];
 let allRequests = [];
 let allShifts = [];
 
-// データキャッシュ（無効化してリアルタイム更新）
+// データキャッシュ
 let usersCache = null;
 let shiftsCache = null;
 let requestsCache = null;
 let cacheTimestamp = 0;
-const CACHE_DURATION = 0; // キャッシュを無効化（即座に反映）
+const CACHE_DURATION = 30000; // 30秒間キャッシュを保持
 
 // ページ読み込み時
 document.addEventListener('DOMContentLoaded', async () => {
@@ -243,15 +243,13 @@ function displayRequests(requests) {
 // 希望シフトを承認
 async function approveRequest(requestId) {
     try {
-        // POST で承認処理（PUT/PATCH が使えないため）
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_approve.php`, {
-            method: 'POST',
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
+            method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                id: requestId,
-                action: 'approve'
+                status: 'approved'
             })
         });
         
@@ -260,27 +258,24 @@ async function approveRequest(requestId) {
             clearCache();
             loadShiftRequests();
         } else {
-            const error = await response.json();
-            throw new Error(error.error || '承認に失敗しました');
+            throw new Error('承認に失敗しました');
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('承認に失敗しました: ' + error.message);
+        alert('承認に失敗しました');
     }
 }
 
 // 承認を取り消す
 async function unapproveRequest(requestId) {
     try {
-        // POST で承認取り消し処理（PUT/PATCH が使えないため）
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_approve.php`, {
-            method: 'POST',
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
+            method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                id: requestId,
-                action: 'unapprove'
+                status: 'pending'
             })
         });
         
@@ -289,8 +284,7 @@ async function unapproveRequest(requestId) {
             clearCache();
             loadShiftRequests();
         } else {
-            const error = await response.json();
-            throw new Error(error.error || '承認取り消しに失敗しました');
+            throw new Error('承認取り消しに失敗しました');
         }
     } catch (error) {
         console.error('エラー:', error);
@@ -305,16 +299,8 @@ async function deleteRequest(requestId) {
     }
     
     try {
-        // POST で削除処理（DELETE が使えないため）
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_update/delete/${requestId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                id: requestId,
-                action: 'delete'
-            })
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
+            method: 'DELETE'
         });
         
         if (response.ok || response.status === 204) {
@@ -326,7 +312,7 @@ async function deleteRequest(requestId) {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('削除に失敗しました: ' + error.message);
+        alert('削除に失敗しました');
     }
 }
 
@@ -394,15 +380,14 @@ async function saveRequestEdit() {
         });
         
         if (response.ok) {
-            // 希望シフトを承認済みに更新（POST で）
-            await fetch(`${API_BASE_URL}/tables/shift_requests_approve.php`, {
-                method: 'POST',
+            // 希望シフトを承認済みに更新
+            await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    id: requestId,
-                    action: 'approve'
+                    status: 'approved'
                 })
             });
             
@@ -547,16 +532,8 @@ async function deleteShift(shiftId) {
     }
     
     try {
-        // POST で削除処理（DELETE が使えないため）
-        const response = await fetch(`${API_BASE_URL}/tables/shifts_update/delete/${shiftId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                id: shiftId,
-                action: 'delete'
-            })
+        const response = await fetch(`${API_BASE_URL}/tables/shifts/${shiftId}`, {
+            method: 'DELETE'
         });
         
         if (response.ok || response.status === 204) {
@@ -569,7 +546,7 @@ async function deleteShift(shiftId) {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('シフトの削除に失敗しました: ' + error.message);
+        alert('シフトの削除に失敗しました');
     }
 }
 
@@ -657,18 +634,13 @@ async function saveUserFromModal() {
         
         let response;
         if (userId) {
-            // 更新（POST で）
-            response = await fetch(`${API_BASE_URL}/tables/users_update.php`, {
-                method: 'POST',
+            // 更新
+            response = await fetch(`${API_BASE_URL}/tables/users/${userId}`, {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    id: userId,
-                    name: name,
-                    role: role,
-                    password: password
-                })
+                body: JSON.stringify(userData)
             });
             
             // ユーザー名が変更された場合、関連するシフトと希望シフトも更新
@@ -717,33 +689,29 @@ async function updateUserNameInShifts(userId, newName) {
         
         const updatePromises = [];
         
-        // シフトのユーザー名を更新（POST で）
+        // シフトのユーザー名を更新
         shiftsResult.data.forEach(shift => {
             if (shift.user_id === userId) {
+                const updatedShift = { ...shift, user_name: newName };
                 updatePromises.push(
-                    fetch(`${API_BASE_URL}/tables/shifts_update.php`, {
-                        method: 'POST',
+                    fetch(`${API_BASE_URL}/tables/shifts/${shift.id}`, {
+                        method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            id: shift.id,
-                            user_name: newName
-                        })
+                        body: JSON.stringify(updatedShift)
                     })
                 );
             }
         });
         
-        // 希望シフトのユーザー名を更新（POST で）
+        // 希望シフトのユーザー名を更新
         requestsResult.data.forEach(request => {
             if (request.user_id === userId) {
+                const updatedRequest = { ...request, user_name: newName };
                 updatePromises.push(
-                    fetch(`${API_BASE_URL}/tables/shift_requests_update.php`, {
-                        method: 'POST',
+                    fetch(`${API_BASE_URL}/tables/shift_requests/${request.id}`, {
+                        method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            id: request.id,
-                            user_name: newName
-                        })
+                        body: JSON.stringify(updatedRequest)
                     })
                 );
             }
@@ -777,34 +745,19 @@ window.deleteUser = async function(userId) {
         
         const deletePromises = [];
         
-        // POST で削除処理（DELETE が使えないため）
         userShifts.forEach(shift => {
-            deletePromises.push(
-                fetch(`${API_BASE_URL}/tables/shifts_update/delete/${shift.id}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: shift.id, action: 'delete' })
-                })
-            );
+            deletePromises.push(fetch(`${API_BASE_URL}/tables/shifts/${shift.id}`, { method: 'DELETE' }));
         });
         
         userRequests.forEach(request => {
-            deletePromises.push(
-                fetch(`${API_BASE_URL}/tables/shift_requests_update/delete/${request.id}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: request.id, action: 'delete' })
-                })
-            );
+            deletePromises.push(fetch(`${API_BASE_URL}/tables/shift_requests/${request.id}`, { method: 'DELETE' }));
         });
         
         await Promise.all(deletePromises);
         
-        // ユーザーを削除（POST で）
-        const response = await fetch(`${API_BASE_URL}/tables/users_update/delete/${userId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: userId, action: 'delete' })
+        // ユーザーを削除
+        const response = await fetch(`${API_BASE_URL}/tables/users/${userId}`, {
+            method: 'DELETE'
         });
         
         if (response.ok || response.status === 204) {
@@ -1335,27 +1288,35 @@ async function saveMgmtShift() {
     
     try {
         if (type === 'request') {
-            // 希望シフトの更新（POST で）
-            await fetch(`${API_BASE_URL}/tables/shift_requests_update.php`, {
-                method: 'POST',
+            const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`);
+            const request = await response.json();
+            
+            const updatedData = {
+                ...request,
+                time_slots: [`${startTime}-${endTime}`],
+                notes: notes
+            };
+            
+            await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: id,
-                    time_slots: [`${startTime}-${endTime}`],
-                    notes: notes
-                })
+                body: JSON.stringify(updatedData)
             });
         } else {
-            // シフトの更新（POST で）
-            await fetch(`${API_BASE_URL}/tables/shifts_update.php`, {
-                method: 'POST',
+            const response = await fetch(`${API_BASE_URL}/tables/shifts/${id}`);
+            const shift = await response.json();
+            
+            const updatedData = {
+                ...shift,
+                start_time: startTime,
+                end_time: endTime,
+                notes: notes
+            };
+            
+            await fetch(`${API_BASE_URL}/tables/shifts/${id}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: id,
-                    start_time: startTime,
-                    end_time: endTime,
-                    notes: notes
-                })
+                body: JSON.stringify(updatedData)
             });
         }
         
@@ -1373,21 +1334,18 @@ async function approveMgmtRequest() {
     const id = document.getElementById('mgmtItemId').value;
     
     try {
-        // POST で承認処理
-        await fetch(`${API_BASE_URL}/tables/shift_requests_approve.php`, {
-            method: 'POST',
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`);
+        const request = await response.json();
+        
+        await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`, {
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                id: id,
-                action: 'approve'
-            })
+            body: JSON.stringify({ status: 'approved' })
         });
         
         alert('承認しました');
-        clearCache();
         closeMgmtModal();
         loadManagementCalendar();
-        loadShiftRequests();
     } catch (error) {
         console.error('エラー:', error);
         alert('承認に失敗しました');
@@ -1399,28 +1357,18 @@ async function unapproveMgmtRequest() {
     const id = document.getElementById('mgmtItemId').value;
     
     try {
-        // POST で承認取り消し処理（PUT/PATCH が使えないため）
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_update/${id}`, {
-            method: 'POST',
+        await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`, {
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                id: id,
-                status: 'pending' 
-            })
+            body: JSON.stringify({ status: 'pending' })
         });
         
-        if (response.ok) {
-            alert('承認を取り消しました');
-            clearCache();
-            closeMgmtModal();
-            loadManagementCalendar();
-            loadShiftRequests();
-        } else {
-            throw new Error('承認取り消しに失敗しました');
-        }
+        alert('承認を取り消しました');
+        closeMgmtModal();
+        loadManagementCalendar();
     } catch (error) {
         console.error('エラー:', error);
-        alert('承認取消に失敗しました: ' + error.message);
+        alert('承認取消に失敗しました');
     }
 }
 
@@ -1434,30 +1382,15 @@ async function deleteMgmtItem() {
     }
     
     try {
-        // POST で削除処理（DELETE が使えないため）
-        const endpoint = type === 'request' ? 'shift_requests_update' : 'shifts_update';
-        const response = await fetch(`${API_BASE_URL}/tables/${endpoint}/delete/${id}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                id: id,
-                action: 'delete'
-            })
-        });
+        const endpoint = type === 'request' ? 'shift_requests' : 'shifts';
+        await fetch(`${API_BASE_URL}/tables/${endpoint}/${id}`, { method: 'DELETE' });
         
-        if (response.ok || response.status === 204) {
-            alert('削除しました');
-            clearCache();
-            closeMgmtModal();
-            loadManagementCalendar();
-            loadShiftRequests();
-            loadShifts();
-        } else {
-            throw new Error('削除に失敗しました');
-        }
+        alert('削除しました');
+        closeMgmtModal();
+        loadManagementCalendar();
     } catch (error) {
         console.error('エラー:', error);
-        alert('削除に失敗しました: ' + error.message);
+        alert('削除に失敗しました');
     }
 }
 
@@ -1563,22 +1496,12 @@ async function saveShiftEdit() {
             notes: notes
         };
         
-        // POST で更新（PUT が使えないため）
-        const response = await fetch(`${API_BASE_URL}/tables/shifts_update.php`, {
-            method: 'POST',
+        const response = await fetch(`${API_BASE_URL}/tables/shifts/${shiftId}`, {
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                id: shiftId,
-                user_id: userId,
-                user_name: userName,
-                date: date,
-                start_time: startTime,
-                end_time: endTime,
-                is_confirmed: true,
-                notes: notes
-            })
+            body: JSON.stringify(shiftData)
         });
         
         if (response.ok) {
@@ -1587,8 +1510,7 @@ async function saveShiftEdit() {
             loadShifts();
             loadCalendar();
         } else {
-            const error = await response.json();
-            throw new Error(error.error || '更新に失敗しました');
+            throw new Error('更新に失敗しました');
         }
     } catch (error) {
         console.error('エラー:', error);
@@ -1605,16 +1527,8 @@ async function deleteShiftFromModal() {
     }
     
     try {
-        // POST で削除処理（DELETE が使えないため）
-        const response = await fetch(`${API_BASE_URL}/tables/shifts_update/delete/${shiftId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                id: shiftId,
-                action: 'delete'
-            })
+        const response = await fetch(`${API_BASE_URL}/tables/shifts/${shiftId}`, {
+            method: 'DELETE'
         });
         
         if (response.ok || response.status === 204) {
