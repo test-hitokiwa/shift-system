@@ -3,6 +3,34 @@
 // APIベースURL
 const API_BASE_URL = 'https://hito-kiwa.co.jp/api';
 
+// トースト通知を表示
+function showToast(message, type = 'success') {
+    // 既存のトーストを削除
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // 新しいトーストを作成
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // アニメーション表示
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    // 3秒後に自動削除
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 3000);
+}
+
 let currentUser = null;
 let allUsers = [];
 let allRequests = [];
@@ -256,7 +284,7 @@ async function approveRequest(requestId) {
         });
         
         if (response.ok) {
-            alert('希望シフトを承認しました');
+            showToast('希望シフトを承認しました', 'success');
             clearCache();
             loadShiftRequests();
         } else {
@@ -265,7 +293,7 @@ async function approveRequest(requestId) {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('承認に失敗しました: ' + error.message);
+        showToast('承認に失敗しました: ' + error.message, 'error');
     }
 }
 
@@ -285,7 +313,7 @@ async function unapproveRequest(requestId) {
         });
         
         if (response.ok) {
-            alert('承認を取り消しました');
+            showToast('承認を取り消しました', 'success');
             clearCache();
             loadShiftRequests();
         } else {
@@ -294,7 +322,7 @@ async function unapproveRequest(requestId) {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('承認取り消しに失敗しました');
+        showToast('承認取り消しに失敗しました', 'error');
     }
 }
 
@@ -318,7 +346,7 @@ async function deleteRequest(requestId) {
         });
         
         if (response.ok || response.status === 204) {
-            alert('希望シフトを削除しました');
+            showToast('希望シフトを削除しました', 'success');
             clearCache();
             loadShiftRequests();
         } else {
@@ -326,7 +354,7 @@ async function deleteRequest(requestId) {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('削除に失敗しました: ' + error.message);
+        showToast('削除に失敗しました: ' + error.message, 'error');
     }
 }
 
@@ -361,12 +389,12 @@ async function saveRequestEdit() {
     const notes = document.getElementById('editNotes').value;
     
     if (!startTime || !endTime) {
-        alert('時間を選択してください');
+        showToast('時間を選択してください', 'error');
         return;
     }
     
     if (startTime >= endTime) {
-        alert('終了時刻は開始時刻より後にしてください');
+        showToast('終了時刻は開始時刻より後にしてください', 'error');
         return;
     }
     
@@ -406,7 +434,7 @@ async function saveRequestEdit() {
                 })
             });
             
-            alert('シフトを作成しました！');
+            showToast('シフトを作成しました！', 'success');
             clearCache();
             closeEditModal();
             loadShiftRequests();
@@ -416,7 +444,7 @@ async function saveRequestEdit() {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('シフトの作成に失敗しました');
+        showToast('シフトの作成に失敗しました', 'error');
     }
 }
 
@@ -431,7 +459,7 @@ async function createShift() {
     const notes = document.getElementById('shiftNotes').value;
     
     if (!userId || !date || !startTime || !endTime) {
-        alert('すべての必須項目を入力してください');
+        showToast('すべての必須項目を入力してください', 'error');
         return;
     }
     
@@ -455,7 +483,7 @@ async function createShift() {
         });
         
         if (response.ok) {
-            alert('シフトを作成しました！');
+            showToast('シフトを作成しました！', 'success');
             clearCache();
             
             // フォームをリセット
@@ -472,7 +500,7 @@ async function createShift() {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('シフトの作成に失敗しました');
+        showToast('シフトの作成に失敗しました', 'error');
     }
 }
 
@@ -560,7 +588,7 @@ async function deleteShift(shiftId) {
         });
         
         if (response.ok || response.status === 204) {
-            alert('シフトを削除しました');
+            showToast('シフトを削除しました', 'success');
             clearCache();
             loadShifts();
             loadCalendar();
@@ -569,7 +597,7 @@ async function deleteShift(shiftId) {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('シフトの削除に失敗しました: ' + error.message);
+        showToast('シフトの削除に失敗しました: ' + error.message, 'error');
     }
 }
 
@@ -627,7 +655,7 @@ window.editUser = async function(userId) {
         document.getElementById('userEditModal').style.display = 'flex';
     } catch (error) {
         console.error('エラー:', error);
-        alert('ユーザー情報の読み込みに失敗しました');
+        showToast('ユーザー情報の読み込みに失敗しました', 'error');
     }
 }
 
@@ -644,7 +672,7 @@ async function saveUserFromModal() {
     const password = document.getElementById('modalUserPassword').value;
     
     if (!name || !password) {
-        alert('すべての項目を入力してください');
+        showToast('すべての項目を入力してください', 'error');
         return;
     }
     
@@ -687,7 +715,7 @@ async function saveUserFromModal() {
         }
         
         if (response.ok) {
-            alert('ユーザーを保存しました');
+            showToast('ユーザーを保存しました', 'success');
             clearCache();
             closeUserEditModal();
             loadUsersList();
@@ -700,7 +728,7 @@ async function saveUserFromModal() {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('ユーザーの保存に失敗しました');
+        showToast('ユーザーの保存に失敗しました', 'error');
     }
 }
 
@@ -808,7 +836,7 @@ window.deleteUser = async function(userId) {
         });
         
         if (response.ok || response.status === 204) {
-            alert('ユーザーと関連データを削除しました');
+            showToast('ユーザーと関連データを削除しました', 'success');
             clearCache();
             loadUsersList();
             loadUsers();
@@ -820,7 +848,7 @@ window.deleteUser = async function(userId) {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('ユーザーの削除に失敗しました');
+        showToast('ユーザーの削除に失敗しました', 'error');
     }
 }
 
@@ -1237,7 +1265,7 @@ async function openMgmtModal(type, id) {
         document.getElementById('mgmtModal').style.display = 'flex';
     } catch (error) {
         console.error('エラー:', error);
-        alert('データの読み込みに失敗しました');
+        showToast('データの読み込みに失敗しました', 'error');
     }
 }
 
@@ -1251,7 +1279,7 @@ function openQuickCreateForDate(dateStr) {
     const staffId = document.getElementById('mgmtStaff').value;
     
     if (!staffId) {
-        alert('スタッフを選択してください');
+        showToast('スタッフを選択してください', 'error');
         return;
     }
     
@@ -1325,12 +1353,12 @@ async function saveQuickCreate() {
             });
         }
         
-        alert('作成しました');
+        showToast('作成しました', 'success');
         closeQuickCreateModal();
         loadManagementCalendar();
     } catch (error) {
         console.error('エラー:', error);
-        alert('作成に失敗しました');
+        showToast('作成に失敗しました', 'error');
     }
 }
 
@@ -1373,12 +1401,12 @@ async function saveMgmtShift() {
             });
         }
         
-        alert('保存しました');
+        showToast('保存しました', 'success');
         closeMgmtModal();
         loadManagementCalendar();
     } catch (error) {
         console.error('エラー:', error);
-        alert('保存に失敗しました');
+        showToast('保存に失敗しました', 'error');
     }
 }
 
@@ -1397,14 +1425,14 @@ async function approveMgmtRequest() {
             })
         });
         
-        alert('承認しました');
+        showToast('承認しました', 'success');
         clearCache();
         closeMgmtModal();
         loadManagementCalendar();
         loadShiftRequests();
     } catch (error) {
         console.error('エラー:', error);
-        alert('承認に失敗しました');
+        showToast('承認に失敗しました', 'error');
     }
 }
 
@@ -1424,7 +1452,7 @@ async function unapproveMgmtRequest() {
         });
         
         if (response.ok) {
-            alert('承認を取り消しました');
+            showToast('承認を取り消しました', 'success');
             clearCache();
             closeMgmtModal();
             loadManagementCalendar();
@@ -1434,7 +1462,7 @@ async function unapproveMgmtRequest() {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('承認取消に失敗しました: ' + error.message);
+        showToast('承認取消に失敗しました: ' + error.message, 'error');
     }
 }
 
@@ -1460,7 +1488,7 @@ async function deleteMgmtItem() {
         });
         
         if (response.ok || response.status === 204) {
-            alert('削除しました');
+            showToast('削除しました', 'success');
             clearCache();
             closeMgmtModal();
             loadManagementCalendar();
@@ -1471,7 +1499,7 @@ async function deleteMgmtItem() {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('削除に失敗しました: ' + error.message);
+        showToast('削除に失敗しました: ' + error.message, 'error');
     }
 }
 
@@ -1541,7 +1569,7 @@ window.openShiftEdit = async function(shiftId) {
         document.getElementById('shiftEditModal').style.display = 'flex';
     } catch (error) {
         console.error('エラー:', error);
-        alert('シフト情報の読み込みに失敗しました');
+        showToast('シフト情報の読み込みに失敗しました', 'error');
     }
 }
 
@@ -1562,7 +1590,7 @@ async function saveShiftEdit() {
     const notes = document.getElementById('editShiftNotes').value;
     
     if (!userId || !date || !startTime || !endTime) {
-        alert('すべての必須項目を入力してください');
+        showToast('すべての必須項目を入力してください', 'error');
         return;
     }
     
@@ -1596,7 +1624,7 @@ async function saveShiftEdit() {
         });
         
         if (response.ok) {
-            alert('シフトを更新しました');
+            showToast('シフトを更新しました', 'success');
             closeShiftEditModal();
             loadShifts();
             loadCalendar();
@@ -1606,7 +1634,7 @@ async function saveShiftEdit() {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('シフトの更新に失敗しました');
+        showToast('シフトの更新に失敗しました', 'error');
     }
 }
 
@@ -1632,7 +1660,7 @@ async function deleteShiftFromModal() {
         });
         
         if (response.ok || response.status === 204) {
-            alert('シフトを削除しました');
+            showToast('シフトを削除しました', 'success');
             closeShiftEditModal();
             loadShifts();
             loadCalendar();
@@ -1641,7 +1669,7 @@ async function deleteShiftFromModal() {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('シフトの削除に失敗しました');
+        showToast('シフトの削除に失敗しました', 'error');
     }
 }
 
@@ -1694,7 +1722,7 @@ async function saveGeneralQuickCreate() {
     const notes = document.getElementById('generalQuickNotes').value;
     
     if (!userId) {
-        alert('スタッフを選択してください');
+        showToast('スタッフを選択してください', 'error');
         return;
     }
     
@@ -1739,12 +1767,12 @@ async function saveGeneralQuickCreate() {
             });
         }
         
-        alert('作成しました');
+        showToast('作成しました', 'success');
         closeGeneralQuickCreateModal();
         loadCalendar();
     } catch (error) {
         console.error('エラー:', error);
-        alert('作成に失敗しました');
+        showToast('作成に失敗しました', 'error');
     }
 }
 
