@@ -1366,18 +1366,26 @@ async function unapproveMgmtRequest() {
     const id = document.getElementById('mgmtItemId').value;
     
     try {
-        await fetch(`${API_BASE_URL}/tables/shift_requests/${id}`, {
-            method: 'PATCH',
+        // POST で承認取り消し処理（PUT/PATCH が使えないため）
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_update/${id}`, {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'pending' })
+            body: JSON.stringify({ 
+                id: id,
+                status: 'pending' 
+            })
         });
         
-        alert('承認を取り消しました');
-        closeMgmtModal();
-        loadManagementCalendar();
+        if (response.ok) {
+            alert('承認を取り消しました');
+            closeMgmtModal();
+            loadManagementCalendar();
+        } else {
+            throw new Error('承認取り消しに失敗しました');
+        }
     } catch (error) {
         console.error('エラー:', error);
-        alert('承認取消に失敗しました');
+        alert('承認取消に失敗しました: ' + error.message);
     }
 }
 
@@ -1391,15 +1399,27 @@ async function deleteMgmtItem() {
     }
     
     try {
-        const endpoint = type === 'request' ? 'shift_requests' : 'shifts';
-        await fetch(`${API_BASE_URL}/tables/${endpoint}/${id}`, { method: 'DELETE' });
+        // POST で削除処理（DELETE が使えないため）
+        const endpoint = type === 'request' ? 'shift_requests_update' : 'shifts_update';
+        const response = await fetch(`${API_BASE_URL}/tables/${endpoint}/delete/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                id: id,
+                action: 'delete'
+            })
+        });
         
-        alert('削除しました');
-        closeMgmtModal();
-        loadManagementCalendar();
+        if (response.ok || response.status === 204) {
+            alert('削除しました');
+            closeMgmtModal();
+            loadManagementCalendar();
+        } else {
+            throw new Error('削除に失敗しました');
+        }
     } catch (error) {
         console.error('エラー:', error);
-        alert('削除に失敗しました');
+        alert('削除に失敗しました: ' + error.message);
     }
 }
 
