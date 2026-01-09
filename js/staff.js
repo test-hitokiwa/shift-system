@@ -8,11 +8,11 @@ let selectedDates = []; // 複数選択された日付を保持
 let currentDisplayYear = new Date().getFullYear();
 let currentDisplayMonth = new Date().getMonth() + 1;
 
-// データキャッシュ
+// データキャッシュ（無効化してリアルタイム更新）
 let shiftsCache = null;
 let requestsCache = null;
 let cacheTimestamp = 0;
-const CACHE_DURATION = 30000; // 30秒間キャッシュを保持
+const CACHE_DURATION = 0; // キャッシュを無効化（即座に反映）
 
 // ページ読み込み時
 document.addEventListener('DOMContentLoaded', () => {
@@ -94,18 +94,37 @@ async function getCachedShiftData() {
     }
     
     // キャッシュが無効な場合は新規取得
-    const [requestsResponse, shiftsResponse] = await Promise.all([
-        fetch(API_BASE_URL + '/tables/shift_requests?limit=100'),
-        fetch(API_BASE_URL + '/tables/shifts?limit=100')
-    ]);
-    
+    const requestsResponse = await fetch(API_BASE_URL + '/tables/shift_requests?limit=100');
     const requestsResult = await requestsResponse.json();
-    const shiftsResult = await shiftsResponse.json();
     
     // 自分のデータのみフィルターしてキャッシュ
     requestsCache = requestsResult.data.filter(r => r.user_id === currentUser.id);
-    shiftsCache = shiftsResult.data.filter(s => s.user_id === currentUser.id && s.is_confirmed);
+    
+    // 承認済み（approved）の希望シフトを確定シフトとして扱う
+    shiftsCache = requestsCache.filter(r => r.status === 'approved').map(r => {
+        // time_slots から開始・終了時刻を取得
+        const timeSlots = r.time_slots && r.time_slots.length > 0 ? r.time_slots[0] : '';
+        const [start_time, end_time] = timeSlots.split('-');
+        
+        return {
+            id: r.id,
+            user_id: r.user_id,
+            user_name: r.user_name,
+            date: r.date,
+            start_time: start_time || '',
+            end_time: end_time || '',
+            is_confirmed: true,
+            notes: r.notes,
+            created_at: r.created_at,
+            updated_at: r.updated_at
+        };
+    });
+    
     cacheTimestamp = now;
+    
+    console.log('getCachedShiftData - ユーザーID:', currentUser.id);
+    console.log('getCachedShiftData - 全リクエスト:', requestsCache.length, requestsCache);
+    console.log('getCachedShiftData - 確定シフト（approved）:', shiftsCache.length, shiftsCache);
     
     return { requests: requestsCache, shifts: shiftsCache };
 }
@@ -129,9 +148,17 @@ async function renderDateCalendar() {
         // キャッシュからデータを取得
         const { requests, shifts } = await getCachedShiftData();
         
+        console.log('renderDateCalendar - 月:', monthStr);
+        console.log('renderDateCalendar - 全リクエスト:', requests.length, requests);
+        console.log('renderDateCalendar - 全シフト:', shifts.length, shifts);
+        
         // 該当月のみフィルター
-        const myRequests = requests.filter(r => r.date.startsWith(monthStr));
+        // pending のみ表示（approved は確定シフトとして表示されるため）
+        const myRequests = requests.filter(r => r.date.startsWith(monthStr) && r.status === 'pending');
         const myShifts = shifts.filter(s => s.date.startsWith(monthStr));
+        
+        console.log('renderDateCalendar - フィルター後リクエスト:', myRequests.length);
+        console.log('renderDateCalendar - フィルター後シフト:', myShifts.length);
         
         // 日付ごとにシフト情報をマッピング
         const requestsByDate = {};
@@ -187,18 +214,18 @@ async function renderDateCalendar() {
             html += `<div class="${classNames.join(' ')}" onclick="${!isPast && !isWeekend ? `toggleDateSelection('${dateStr}')` : ''}">`;
             html += `<div class="date-num">${day}</div>`;
             
-            // 希望シフト（黄色）を表示
+            // 確定シフト（緑）を先に表示
+            if (dayShifts.length > 0) {
+                dayShifts.forEach(shift => {
+                    html += `<div class="mini-shift confirmed">${shift.start_time}-${shift.end_time}</div>`;
+                });
+            }
+            
+            // 希望シフト（黄色）を後に表示
             if (dayRequests.length > 0) {
                 dayRequests.forEach(req => {
                     const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
                     html += `<div class="mini-shift request">${timeSlot}</div>`;
-                });
-            }
-            
-            // 確定シフト（赤）を表示
-            if (dayShifts.length > 0) {
-                dayShifts.forEach(shift => {
-                    html += `<div class="mini-shift confirmed">${shift.start_time}-${shift.end_time}</div>`;
                 });
             }
             
@@ -296,6 +323,7 @@ function previousMonth() {
         currentDisplayYear--;
     }
     renderDateCalendar();
+    loadMyRequests(); // 提出済み希望シフト一覧も更新
 }
 
 // 次月へ
@@ -306,6 +334,7 @@ function nextMonth() {
         currentDisplayYear++;
     }
     renderDateCalendar();
+    loadMyRequests(); // 提出済み希望シフト一覧も更新
 }
 
 // 希望シフトを提出（複数日付対応）
@@ -387,8 +416,16 @@ async function loadMyRequests() {
     try {
         const { requests } = await getCachedShiftData();
         
-        // 自分の希望シフトはキャッシュから取得済み
-        const myRequests = requests;
+        // カレンダーで選択されている月を取得
+        const selectedMonth = `${currentDisplayYear}-${currentDisplayMonth.toString().padStart(2, '0')}`;
+        
+        console.log('loadMyRequests - 選択された月:', selectedMonth);
+        console.log('loadMyRequests - 全リクエスト:', requests.length);
+        
+        // 選択された月でフィルター（承認済みも含めて全て表示）
+        const myRequests = requests.filter(req => req.date.startsWith(selectedMonth));
+        
+        console.log('loadMyRequests - フィルター後:', myRequests.length);
         
         const container = document.getElementById('myRequests');
         
@@ -483,7 +520,8 @@ async function loadCalendar() {
         
         // 該当月でフィルター
         const myShifts = shifts.filter(shift => shift.date.startsWith(calendarMonth));
-        const myRequests = requests.filter(request => request.date.startsWith(calendarMonth));
+        // pending のみ表示（approved は確定シフトとして myShifts に含まれる）
+        const myRequests = requests.filter(request => request.date.startsWith(calendarMonth) && request.status === 'pending');
         
         // カレンダーを生成
         const container = document.getElementById('calendarView');
@@ -552,7 +590,14 @@ function generateCalendar(year, month, shifts, requests) {
         html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !isWeekend ? `openStaffQuickCreate('${dateStr}')` : ''}" style="${!hasData && !isWeekend ? 'cursor: pointer;' : ''}">`;
         html += `<div class="day-number">${day}</div>`;
         
-        // 希望シフト（黄色）
+        // 確定シフト（緑）を先に表示
+        if (dayShifts.length > 0) {
+            dayShifts.forEach(shift => {
+                html += `<div class="shift-info shift-confirmed" style="cursor: pointer;" onclick="event.stopPropagation(); showShiftDetail('${shift.id}')" title="確定シフト">${shift.start_time}-${shift.end_time}</div>`;
+            });
+        }
+        
+        // 希望シフト（黄色）を後に表示
         if (dayRequests.length > 0) {
             dayRequests.forEach(request => {
                 const timeSlot = request.time_slots && request.time_slots.length > 0 ? request.time_slots[0] : '';
@@ -562,13 +607,6 @@ function generateCalendar(year, month, shifts, requests) {
                     : `showRequestDetail('${request.id}')`;
                 const title = request.status === 'pending' ? '未承認（クリックで編集）' : '承認済み（変更不可）';
                 html += `<div class="shift-info request-pending" style="cursor: pointer;" onclick="event.stopPropagation(); ${clickHandler}" title="${title}">${timeSlot}</div>`;
-            });
-        }
-        
-        // 確定シフト（赤）
-        if (dayShifts.length > 0) {
-            dayShifts.forEach(shift => {
-                html += `<div class="shift-info shift-confirmed" style="cursor: pointer;" onclick="event.stopPropagation(); showShiftDetail('${shift.id}')" title="確定シフト">${shift.start_time}-${shift.end_time}</div>`;
             });
         }
         
@@ -782,17 +820,17 @@ async function saveEditedRequest() {
     }
     
     try {
-        const requestData = {
-            time_slots: [`${startTime}-${endTime}`],
-            notes: notes
-        };
-        
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
-            method: 'PATCH',
+        // POST で更新（PATCH が使えないため）
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_update.php`, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestData)
+            body: JSON.stringify({
+                id: requestId,
+                time_slots: [`${startTime}-${endTime}`],
+                notes: notes
+            })
         });
         
         if (response.ok) {
@@ -802,11 +840,12 @@ async function saveEditedRequest() {
             loadMyRequests();
             loadCalendar();
         } else {
-            throw new Error('更新に失敗しました');
+            const error = await response.json();
+            throw new Error(error.error || '更新に失敗しました');
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('希望シフトの更新に失敗しました');
+        alert('希望シフトの更新に失敗しました: ' + error.message);
     }
 }
 
@@ -824,8 +863,16 @@ async function deleteRequestFromModal() {
     }
     
     try {
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
-            method: 'DELETE'
+        // POST で削除処理（DELETE が使えないため）
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_update/delete/${requestId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id: requestId,
+                action: 'delete'
+            })
         });
         
         if (response.ok || response.status === 204) {
@@ -839,7 +886,7 @@ async function deleteRequestFromModal() {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('希望シフトの削除に失敗しました');
+        alert('希望シフトの削除に失敗しました: ' + error.message);
     }
 }
 
@@ -850,8 +897,16 @@ async function deleteMyRequest(requestId) {
     }
     
     try {
-        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`, {
-            method: 'DELETE'
+        // POST で削除処理（DELETE が使えないため）
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_update/delete/${requestId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id: requestId,
+                action: 'delete'
+            })
         });
         
         if (response.ok || response.status === 204) {
