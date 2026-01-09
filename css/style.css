@@ -995,11 +995,11 @@ textarea.form-control {
 }
 
 .week-total-value.request {
-    color: #ff9800;
+    color: #ff9800; /* 未承認は黄色（オレンジ） */
 }
 
 .week-total-value.confirmed {
-    color: #dc3545;
+    color: #28a745; /* 承認済みは緑色 */
 }
 
 @media (max-width: 768px) {
