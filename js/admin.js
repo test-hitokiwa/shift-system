@@ -1117,15 +1117,23 @@ function calculateWeeklyTotals(year, month, requests, shifts) {
             currentWeek = { start: day, end: null, requestHours: 0, confirmedHours: 0 };
         }
         
-        // その日の希望シフトの時間を計算
-        requests.filter(r => r.date === dateStr).forEach(req => {
+        // その日の希望シフト（未承認）の時間を計算
+        requests.filter(r => r.date === dateStr && r.status === 'pending').forEach(req => {
             if (req.time_slots && req.time_slots.length > 0) {
                 const [start, end] = req.time_slots[0].split('-');
                 currentWeek.requestHours += calculateHours(start, end);
             }
         });
         
-        // その日の確定シフトの時間を計算
+        // その日の確定シフト（承認済み）の時間を計算
+        requests.filter(r => r.date === dateStr && r.status === 'approved').forEach(req => {
+            if (req.time_slots && req.time_slots.length > 0) {
+                const [start, end] = req.time_slots[0].split('-');
+                currentWeek.confirmedHours += calculateHours(start, end);
+            }
+        });
+        
+        // shifts テーブルのシフトもカウント（もしあれば）
         shifts.filter(s => s.date === dateStr).forEach(shift => {
             currentWeek.confirmedHours += calculateHours(shift.start_time, shift.end_time);
         });
@@ -1145,11 +1153,11 @@ function calculateWeeklyTotals(year, month, requests, shifts) {
             <div class="week-total-card">
                 <h4>第${index + 1}週 ${week.start}日-${week.end}日</h4>
                 <div class="week-total-item">
-                    <span class="week-total-label">希望</span>
+                    <span class="week-total-label">未承認</span>
                     <span class="week-total-value request">${week.requestHours.toFixed(1)}h</span>
                 </div>
                 <div class="week-total-item">
-                    <span class="week-total-label">確定</span>
+                    <span class="week-total-label">承認済み</span>
                     <span class="week-total-value confirmed">${week.confirmedHours.toFixed(1)}h</span>
                 </div>
             </div>
