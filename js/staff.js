@@ -620,13 +620,19 @@ function generateCalendar(year, month, shifts, requests) {
 // シフト詳細を表示（スタッフは閲覧のみ）
 async function showShiftDetail(shiftId) {
     try {
-        const response = await fetch(`${API_BASE_URL}/tables/shifts/${shiftId}`);
+        // 承認済みシフトは shift_requests テーブルにある
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${shiftId}`);
         const shift = await response.json();
+        
+        // time_slots から開始・終了時刻を取得
+        const timeSlots = shift.time_slots && shift.time_slots.length > 0 ? shift.time_slots[0] : '';
+        const [start_time, end_time] = timeSlots.split('-');
         
         const content = `
             <div style="padding: 10px 0;">
                 <p style="margin: 10px 0;"><strong>日付:</strong> ${formatDate(shift.date)}</p>
-                <p style="margin: 10px 0;"><strong>時間:</strong> ${shift.start_time} - ${shift.end_time}</p>
+                <p style="margin: 10px 0;"><strong>時間:</strong> ${start_time || ''} - ${end_time || ''}</p>
+                <p style="margin: 10px 0;"><strong>ステータス:</strong> <span style="color: #28a745; font-weight: bold;">承認済み</span></p>
                 ${shift.notes ? `<p style="margin: 10px 0;"><strong>備考:</strong> ${shift.notes}</p>` : ''}
             </div>
         `;
