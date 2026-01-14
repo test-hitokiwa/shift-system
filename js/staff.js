@@ -51,21 +51,20 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCalendar();
 });
 
-// 時間選択ボックスを生成（9:30-18:00、15分刻み）
+// 時間選択ボックスを生成（9:30-18:00、30分刻み）
 function generateTimeOptions() {
     const startSelect = document.getElementById('requestStartTime');
     const endSelect = document.getElementById('requestEndTime');
     
     const times = [];
     for (let hour = 9; hour <= 18; hour++) {
-        for (let min = 0; min < 60; min += 15) {
-            // 9:00, 9:15 は除外（9:30から）
-            if (hour === 9 && min < 30) continue;
-            // 18:00 より後は除外
-            if (hour === 18 && min > 0) break;
-            
-            const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-            times.push(timeStr);
+        if (hour === 9) {
+            times.push('09:30');
+        } else if (hour < 18) {
+            times.push(`${hour.toString().padStart(2, '0')}:00`);
+            times.push(`${hour.toString().padStart(2, '0')}:30`);
+        } else {
+            times.push('18:00');
         }
     }
     
@@ -464,12 +463,12 @@ async function loadMyRequests() {
     }
 }
 
-// 確定シフトを読み込む
+// 承認済みシフトを読み込む
 async function loadConfirmedShifts() {
     try {
         const { shifts } = await getCachedShiftData();
         
-        // 自分の確定シフトはキャッシュから取得済み
+        // 自分の承認済みシフトはキャッシュから取得済み
         const myShifts = shifts;
         
         // 選択された月でフィルター
@@ -483,9 +482,9 @@ async function loadConfirmedShifts() {
         if (filteredShifts.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
-                    <div class="empty-state-icon">-</div>
-                    <h3>確定シフトがありません</h3>
-                    <p>選択された月の確定シフトはまだありません</p>
+                    <div class="empty-state-icon">📅</div>
+                    <h3>承認済みシフトがありません</h3>
+                    <p>選択された月の承認済みシフトはまだありません</p>
                 </div>
             `;
             return;
@@ -494,16 +493,22 @@ async function loadConfirmedShifts() {
         // 日付順にソート
         filteredShifts.sort((a, b) => new Date(a.date) - new Date(b.date));
         
-        container.innerHTML = filteredShifts.map(shift => `
+        container.innerHTML = filteredShifts.map(shift => {
+            // time_slots がある場合はそれを使用、ない場合は start_time と end_time を使用
+            const timeDisplay = shift.time_slots && shift.time_slots.length > 0 
+                ? shift.time_slots[0] 
+                : `${shift.start_time} - ${shift.end_time}`;
+            
+            return `
             <div class="shift-card">
                 <div class="shift-card-header">
                     <span class="shift-date">${formatDate(shift.date)}</span>
-                    <span class="shift-status status-approved">確定</span>
+                    <span class="shift-status status-approved">承認済み</span>
                 </div>
-                <div class="shift-time">${shift.start_time} - ${shift.end_time}</div>
+                <div class="shift-time">${timeDisplay}</div>
                 ${shift.notes ? `<div class="shift-notes">${shift.notes}</div>` : ''}
             </div>
-        `).join('');
+        `}).join('');
     } catch (error) {
         console.error('エラー:', error);
         document.getElementById('confirmedShifts').innerHTML = '<p style="color: #dc3545;">読み込みに失敗しました</p>';
@@ -758,20 +763,19 @@ async function openRequestEditModal(requestId) {
         document.getElementById('editRequestId').value = request.id;
         document.getElementById('editRequestDate').textContent = formatDate(request.date);
         
-        // 時間選択ボックスを生成（編集用、15分刻み）
+        // 時間選択ボックスを生成（編集用、30分刻み）
         const editStartSelect = document.getElementById('editRequestStartTime');
         const editEndSelect = document.getElementById('editRequestEndTime');
         
         const times = [];
         for (let hour = 9; hour <= 18; hour++) {
-            for (let min = 0; min < 60; min += 15) {
-                // 9:00, 9:15 は除外（9:30から）
-                if (hour === 9 && min < 30) continue;
-                // 18:00 より後は除外
-                if (hour === 18 && min > 0) break;
-                
-                const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-                times.push(timeStr);
+            if (hour === 9) {
+                times.push('09:30');
+            } else if (hour < 18) {
+                times.push(`${hour.toString().padStart(2, '0')}:00`);
+                times.push(`${hour.toString().padStart(2, '0')}:30`);
+            } else {
+                times.push('18:00');
             }
         }
         

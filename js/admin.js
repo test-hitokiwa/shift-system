@@ -73,8 +73,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('shiftDate').value = today;
     
-    // 時間選択ボックスを生成
-    generateTimeOptions();
+    // 時間・分の選択肢を生成
+    generateHourMinOptions();
     
     // 初期データ読み込み
     await loadUsers();
@@ -93,7 +93,89 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 });
 
-// 時間選択ボックスを生成（9:30-18:00、15分刻み）
+// 時間・分の選択肢を生成（9～18時、0・15・30・45分）
+function generateHourMinOptions() {
+    // シフト作成用
+    const shiftStartHour = document.getElementById('shiftStartHour');
+    const shiftStartMin = document.getElementById('shiftStartMin');
+    const shiftEndHour = document.getElementById('shiftEndHour');
+    const shiftEndMin = document.getElementById('shiftEndMin');
+    
+    // シフト管理用
+    const mgmtStartHour = document.getElementById('mgmtStartHour');
+    const mgmtStartMin = document.getElementById('mgmtStartMin');
+    const mgmtEndHour = document.getElementById('mgmtEndHour');
+    const mgmtEndMin = document.getElementById('mgmtEndMin');
+    
+    // 時間の選択肢（9～18）
+    const hours = [];
+    for (let h = 9; h <= 18; h++) {
+        hours.push(h);
+    }
+    
+    // 分の選択肢（0, 15, 30, 45）
+    const minutes = ['00', '15', '30', '45'];
+    
+    // シフト作成用：時間
+    [shiftStartHour, shiftEndHour].forEach(select => {
+        select.innerHTML = '<option value="">時</option>';
+        hours.forEach(h => {
+            const option = document.createElement('option');
+            option.value = h.toString().padStart(2, '0');
+            option.textContent = h + '時';
+            select.appendChild(option);
+        });
+    });
+    
+    // シフト作成用：分
+    [shiftStartMin, shiftEndMin].forEach(select => {
+        select.innerHTML = '<option value="">分</option>';
+        minutes.forEach(m => {
+            const option = document.createElement('option');
+            option.value = m;
+            option.textContent = m + '分';
+            select.appendChild(option);
+        });
+    });
+    
+    // シフト管理用：時間
+    [mgmtStartHour, mgmtEndHour].forEach(select => {
+        select.innerHTML = '<option value="">時</option>';
+        hours.forEach(h => {
+            const option = document.createElement('option');
+            option.value = h.toString().padStart(2, '0');
+            option.textContent = h + '時';
+            select.appendChild(option);
+        });
+    });
+    
+    // シフト管理用：分
+    [mgmtStartMin, mgmtEndMin].forEach(select => {
+        select.innerHTML = '<option value="">分</option>';
+        minutes.forEach(m => {
+            const option = document.createElement('option');
+            option.value = m;
+            option.textContent = m + '分';
+            select.appendChild(option);
+        });
+    });
+}
+
+// 時・分から時刻文字列を生成
+function getTimeString(hour, min) {
+    if (!hour || !min) return '';
+    return `${hour}:${min}`;
+}
+
+// 時刻文字列から時・分を設定
+function setHourMin(timeStr, hourSelectId, minSelectId) {
+    if (!timeStr) return;
+    const [hour, min] = timeStr.split(':');
+    document.getElementById(hourSelectId).value = hour;
+    document.getElementById(minSelectId).value = min;
+}
+
+// 時間選択ボックスを生成（9:30-18:00、15分刻み）- 旧関数（削除予定）
 function generateTimeOptions() {
     const editStartSelect = document.getElementById('editStartTime');
     const editEndSelect = document.getElementById('editEndTime');
@@ -455,8 +537,14 @@ async function createShift() {
     const userId = userSelect.value;
     const userName = userSelect.options[userSelect.selectedIndex].dataset.name;
     const date = document.getElementById('shiftDate').value;
-    const startTime = document.getElementById('shiftStartTime').value;
-    const endTime = document.getElementById('shiftEndTime').value;
+    
+    // 時・分から時刻を取得
+    const startHour = document.getElementById('shiftStartHour').value;
+    const startMin = document.getElementById('shiftStartMin').value;
+    const endHour = document.getElementById('shiftEndHour').value;
+    const endMin = document.getElementById('shiftEndMin').value;
+    const startTime = getTimeString(startHour, startMin);
+    const endTime = getTimeString(endHour, endMin);
     const notes = document.getElementById('shiftNotes').value;
     
     if (!userId || !date || !startTime || !endTime) {
@@ -489,8 +577,10 @@ async function createShift() {
             // フォームをリセット
             document.getElementById('shiftUser').value = '';
             document.getElementById('shiftDate').value = new Date().toISOString().split('T')[0];
-            document.getElementById('shiftStartTime').value = '';
-            document.getElementById('shiftEndTime').value = '';
+            document.getElementById('shiftStartHour').value = '';
+            document.getElementById('shiftStartMin').value = '';
+            document.getElementById('shiftEndHour').value = '';
+            document.getElementById('shiftEndMin').value = '';
             document.getElementById('shiftNotes').value = '';
             
             // シフト一覧を更新
@@ -1221,8 +1311,8 @@ async function openMgmtModal(type, id) {
             
             const timeSlot = data.time_slots && data.time_slots.length > 0 ? data.time_slots[0] : '';
             const [start, end] = timeSlot.split('-');
-            document.getElementById('mgmtStartTime').value = start || '';
-            document.getElementById('mgmtEndTime').value = end || '';
+            setHourMin(start || '', 'mgmtStartHour', 'mgmtStartMin');
+            setHourMin(end || '', 'mgmtEndHour', 'mgmtEndMin');
             document.getElementById('mgmtNotes').value = data.notes || '';
             
             document.getElementById('mgmtShiftInfo').innerHTML = `
@@ -1247,8 +1337,8 @@ async function openMgmtModal(type, id) {
             document.getElementById('mgmtItemType').value = 'shift';
             document.getElementById('mgmtItemId').value = data.id;
             
-            document.getElementById('mgmtStartTime').value = data.start_time || '';
-            document.getElementById('mgmtEndTime').value = data.end_time || '';
+            setHourMin(data.start_time || '', 'mgmtStartHour', 'mgmtStartMin');
+            setHourMin(data.end_time || '', 'mgmtEndHour', 'mgmtEndMin');
             document.getElementById('mgmtNotes').value = data.notes || '';
             
             document.getElementById('mgmtShiftInfo').innerHTML = `
@@ -1366,12 +1456,18 @@ async function saveQuickCreate() {
 async function saveMgmtShift() {
     const type = document.getElementById('mgmtItemType').value;
     const id = document.getElementById('mgmtItemId').value;
-    const startTime = document.getElementById('mgmtStartTime').value;
-    const endTime = document.getElementById('mgmtEndTime').value;
+    
+    // 時・分から時刻を取得
+    const startHour = document.getElementById('mgmtStartHour').value;
+    const startMin = document.getElementById('mgmtStartMin').value;
+    const endHour = document.getElementById('mgmtEndHour').value;
+    const endMin = document.getElementById('mgmtEndMin').value;
+    const startTime = getTimeString(startHour, startMin);
+    const endTime = getTimeString(endHour, endMin);
     const notes = document.getElementById('mgmtNotes').value;
     
     if (!startTime || !endTime) {
-        alert('時間を入力してください');
+        showToast('時間を入力してください', 'error');
         return;
     }
     
