@@ -1381,10 +1381,12 @@ function openQuickCreateForDate(dateStr) {
     document.getElementById('quickCreateUserId').value = staffId;
     document.getElementById('quickCreateDateDisplay').textContent = dateStr;
     document.getElementById('quickCreateUserDisplay').textContent = staffName;
-    document.getElementById('quickStartTime').value = '';
-    document.getElementById('quickEndTime').value = '';
     document.getElementById('quickNotes').value = '';
     document.getElementById('quickCreateType').value = 'approved';
+    
+    // 時・分のオプションを生成
+    generateHourMinOptions('quickStartHour', 'quickStartMin');
+    generateHourMinOptions('quickEndHour', 'quickEndMin');
     
     document.getElementById('quickCreateModal').style.display = 'flex';
 }
@@ -1400,12 +1402,18 @@ async function saveQuickCreate() {
     const userId = document.getElementById('quickCreateUserId').value;
     const userName = document.getElementById('quickCreateUserDisplay').textContent;
     const type = document.getElementById('quickCreateType').value;
-    const startTime = document.getElementById('quickStartTime').value;
-    const endTime = document.getElementById('quickEndTime').value;
+    
+    // 時・分から時刻を取得
+    const startHour = document.getElementById('quickStartHour').value;
+    const startMin = document.getElementById('quickStartMin').value;
+    const endHour = document.getElementById('quickEndHour').value;
+    const endMin = document.getElementById('quickEndMin').value;
+    const startTime = getTimeString(startHour, startMin);
+    const endTime = getTimeString(endHour, endMin);
     const notes = document.getElementById('quickNotes').value;
     
     if (!startTime || !endTime) {
-        alert('時間を入力してください');
+        showToast('時間を入力してください', 'error');
         return;
     }
     
@@ -1776,10 +1784,12 @@ function openGeneralQuickCreate(dateStr) {
         select.appendChild(option);
     });
     
-    document.getElementById('generalQuickStartTime').value = '';
-    document.getElementById('generalQuickEndTime').value = '';
+    // 時・分のオプションを生成
+    generateHourMinOptions('generalQuickStartHour', 'generalQuickStartMin');
+    generateHourMinOptions('generalQuickEndHour', 'generalQuickEndMin');
+    
     document.getElementById('generalQuickNotes').value = '';
-    document.getElementById('generalQuickType').value = 'shift';
+    document.getElementById('generalQuickType').value = 'approved';
     
     document.getElementById('generalQuickCreateModal').style.display = 'flex';
 }
@@ -1796,8 +1806,14 @@ async function saveGeneralQuickCreate() {
     const userId = userSelect.value;
     const userName = userSelect.options[userSelect.selectedIndex].dataset.name;
     const type = document.getElementById('generalQuickType').value;
-    const startTime = document.getElementById('generalQuickStartTime').value;
-    const endTime = document.getElementById('generalQuickEndTime').value;
+    
+    // 時・分から時刻を取得
+    const startHour = document.getElementById('generalQuickStartHour').value;
+    const startMin = document.getElementById('generalQuickStartMin').value;
+    const endHour = document.getElementById('generalQuickEndHour').value;
+    const endMin = document.getElementById('generalQuickEndMin').value;
+    const startTime = getTimeString(startHour, startMin);
+    const endTime = getTimeString(endHour, endMin);
     const notes = document.getElementById('generalQuickNotes').value;
     
     if (!userId) {
@@ -1806,45 +1822,26 @@ async function saveGeneralQuickCreate() {
     }
     
     if (!startTime || !endTime) {
-        alert('時間を入力してください');
+        showToast('時間を入力してください', 'error');
         return;
     }
     
     try {
-        if (type === 'shift') {
-            // 確定シフトを作成
-            const shiftData = {
-                user_id: userId,
-                user_name: userName,
-                date: date,
-                start_time: startTime,
-                end_time: endTime,
-                is_confirmed: true,
-                notes: notes
-            };
-            
-            await fetch(API_BASE_URL + '/tables/shifts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(shiftData)
-            });
-        } else {
-            // 希望シフトを作成
-            const requestData = {
-                user_id: userId,
-                user_name: userName,
-                date: date,
-                time_slots: [`${startTime}-${endTime}`],
-                status: 'pending',
-                notes: notes
-            };
-            
-            await fetch(API_BASE_URL + '/tables/shift_requests', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestData)
-            });
-        }
+        // すべて shift_requests テーブルに保存（承認済み or 未承認）
+        const requestData = {
+            user_id: userId,
+            user_name: userName,
+            date: date,
+            time_slots: [`${startTime}-${endTime}`],
+            status: type, // 'approved' or 'pending'
+            notes: notes
+        };
+        
+        await fetch(API_BASE_URL + '/tables/shift_requests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+        });
         
         showToast('作成しました', 'success');
         closeGeneralQuickCreateModal();
