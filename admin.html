@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>シフト調整システム - 管理者</title>
+    <link rel="icon" href="data:,">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="admin-page">
@@ -93,11 +94,25 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="shiftStartTime">開始時刻</label>
-                            <input type="time" id="shiftStartTime" class="form-control">
+                            <div style="display: flex; gap: 5px;">
+                                <select id="shiftStartHour" class="form-control" style="width: 50%;">
+                                    <option value="">時</option>
+                                </select>
+                                <select id="shiftStartMin" class="form-control" style="width: 50%;">
+                                    <option value="">分</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="shiftEndTime">終了時刻</label>
-                            <input type="time" id="shiftEndTime" class="form-control">
+                            <div style="display: flex; gap: 5px;">
+                                <select id="shiftEndHour" class="form-control" style="width: 50%;">
+                                    <option value="">時</option>
+                                </select>
+                                <select id="shiftEndMin" class="form-control" style="width: 50%;">
+                                    <option value="">分</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group">
@@ -212,11 +227,11 @@
             <div class="form-row">
                 <div class="form-group">
                     <label for="editShiftStartTime">開始時刻</label>
-                    <input type="time" id="editShiftStartTime" class="form-control">
+                    <input type="time" id="editShiftStartTime" class="form-control" step="900" min="09:30" max="18:00">
                 </div>
                 <div class="form-group">
                     <label for="editShiftEndTime">終了時刻</label>
-                    <input type="time" id="editShiftEndTime" class="form-control">
+                    <input type="time" id="editShiftEndTime" class="form-control" step="900" min="09:30" max="18:00">
                 </div>
             </div>
             <div class="form-group">
@@ -243,11 +258,25 @@
             <div class="form-row">
                 <div class="form-group">
                     <label for="mgmtStartTime">開始時刻</label>
-                    <input type="time" id="mgmtStartTime" class="form-control">
+                    <div style="display: flex; gap: 5px;">
+                        <select id="mgmtStartHour" class="form-control" style="width: 50%;">
+                            <option value="">時</option>
+                        </select>
+                        <select id="mgmtStartMin" class="form-control" style="width: 50%;">
+                            <option value="">分</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="mgmtEndTime">終了時刻</label>
-                    <input type="time" id="mgmtEndTime" class="form-control">
+                    <div style="display: flex; gap: 5px;">
+                        <select id="mgmtEndHour" class="form-control" style="width: 50%;">
+                            <option value="">時</option>
+                        </select>
+                        <select id="mgmtEndMin" class="form-control" style="width: 50%;">
+                            <option value="">分</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="form-group">
@@ -287,11 +316,11 @@
             <div class="form-row">
                 <div class="form-group">
                     <label for="quickStartTime">開始時刻</label>
-                    <input type="time" id="quickStartTime" class="form-control">
+                    <input type="time" id="quickStartTime" class="form-control" step="900" min="09:30" max="18:00">
                 </div>
                 <div class="form-group">
                     <label for="quickEndTime">終了時刻</label>
-                    <input type="time" id="quickEndTime" class="form-control">
+                    <input type="time" id="quickEndTime" class="form-control" step="900" min="09:30" max="18:00">
                 </div>
             </div>
             <div class="form-group">
@@ -331,11 +360,11 @@
             <div class="form-row">
                 <div class="form-group">
                     <label for="generalQuickStartTime">開始時刻</label>
-                    <input type="time" id="generalQuickStartTime" class="form-control">
+                    <input type="time" id="generalQuickStartTime" class="form-control" step="900" min="09:30" max="18:00">
                 </div>
                 <div class="form-group">
                     <label for="generalQuickEndTime">終了時刻</label>
-                    <input type="time" id="generalQuickEndTime" class="form-control">
+                    <input type="time" id="generalQuickEndTime" class="form-control" step="900" min="09:30" max="18:00">
                 </div>
             </div>
             <div class="form-group">
