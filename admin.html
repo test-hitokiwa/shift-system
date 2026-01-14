@@ -116,6 +116,13 @@
                         </div>
                     </div>
                     <div class="form-group">
+                        <label for="shiftStatus">ステータス</label>
+                        <select id="shiftStatus" class="form-control">
+                            <option value="approved">承認済みシフト</option>
+                            <option value="pending">未承認シフト</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="shiftNotes">備考・メモ（任意）</label>
                         <textarea id="shiftNotes" class="form-control"></textarea>
                     </div>
@@ -308,8 +315,8 @@
             <div class="form-group">
                 <label>作成タイプ</label>
                 <select id="quickCreateType" class="form-control">
-                    <option value="shift">確定シフト</option>
-                    <option value="request">希望シフト</option>
+                    <option value="approved">承認済みシフト</option>
+                    <option value="pending">未承認シフト</option>
                 </select>
             </div>
 
