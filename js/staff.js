@@ -51,20 +51,21 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCalendar();
 });
 
-// 時間選択ボックスを生成（9:30-18:00、30分刻み）
+// 時間選択ボックスを生成（9:30-18:00、15分刻み）
 function generateTimeOptions() {
     const startSelect = document.getElementById('requestStartTime');
     const endSelect = document.getElementById('requestEndTime');
     
     const times = [];
     for (let hour = 9; hour <= 18; hour++) {
-        if (hour === 9) {
-            times.push('09:30');
-        } else if (hour < 18) {
-            times.push(`${hour.toString().padStart(2, '0')}:00`);
-            times.push(`${hour.toString().padStart(2, '0')}:30`);
-        } else {
-            times.push('18:00');
+        for (let min = 0; min < 60; min += 15) {
+            // 9:00, 9:15 は除外（9:30から）
+            if (hour === 9 && min < 30) continue;
+            // 18:00 より後は除外
+            if (hour === 18 && min > 0) break;
+            
+            const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+            times.push(timeStr);
         }
     }
     
@@ -757,17 +758,20 @@ async function openRequestEditModal(requestId) {
         document.getElementById('editRequestId').value = request.id;
         document.getElementById('editRequestDate').textContent = formatDate(request.date);
         
-        // 時間選択ボックスを生成（編集用）
+        // 時間選択ボックスを生成（編集用、15分刻み）
         const editStartSelect = document.getElementById('editRequestStartTime');
         const editEndSelect = document.getElementById('editRequestEndTime');
         
         const times = [];
         for (let hour = 9; hour <= 18; hour++) {
-            if (hour === 9) {
-                times.push('09:30');
-            } else {
-                times.push(`${hour}:00`);
-                if (hour < 18) times.push(`${hour}:30`);
+            for (let min = 0; min < 60; min += 15) {
+                // 9:00, 9:15 は除外（9:30から）
+                if (hour === 9 && min < 30) continue;
+                // 18:00 より後は除外
+                if (hour === 18 && min > 0) break;
+                
+                const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+                times.push(timeStr);
             }
         }
         

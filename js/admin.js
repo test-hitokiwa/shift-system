@@ -93,20 +93,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 });
 
-// 時間選択ボックスを生成（9:30-18:00、30分刻み）
+// 時間選択ボックスを生成（9:30-18:00、15分刻み）
 function generateTimeOptions() {
     const editStartSelect = document.getElementById('editStartTime');
     const editEndSelect = document.getElementById('editEndTime');
     
     const times = [];
     for (let hour = 9; hour <= 18; hour++) {
-        if (hour === 9) {
-            times.push('09:30');
-        } else if (hour < 18) {
-            times.push(`${hour.toString().padStart(2, '0')}:00`);
-            times.push(`${hour.toString().padStart(2, '0')}:30`);
-        } else {
-            times.push('18:00');
+        for (let min = 0; min < 60; min += 15) {
+            // 9:00, 9:15 は除外（9:30から）
+            if (hour === 9 && min < 30) continue;
+            // 18:00 より後は除外
+            if (hour === 18 && min > 0) break;
+            
+            const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+            times.push(timeStr);
         }
     }
     
@@ -448,7 +449,7 @@ async function saveRequestEdit() {
     }
 }
 
-// シフトを作成
+// シフトを作成（承認済みの希望シフトとして保存）
 async function createShift() {
     const userSelect = document.getElementById('shiftUser');
     const userId = userSelect.value;
@@ -468,13 +469,12 @@ async function createShift() {
             user_id: userId,
             user_name: userName,
             date: date,
-            start_time: startTime,
-            end_time: endTime,
-            is_confirmed: true,
+            time_slots: [`${startTime}-${endTime}`],
+            status: 'approved',
             notes: notes
         };
         
-        const response = await fetch(API_BASE_URL + '/tables/shifts', {
+        const response = await fetch(API_BASE_URL + '/tables/shift_requests', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
