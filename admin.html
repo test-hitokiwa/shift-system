@@ -322,12 +322,26 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="quickStartTime">開始時刻</label>
-                    <input type="time" id="quickStartTime" class="form-control" step="900" min="09:30" max="18:00">
+                    <label>開始時刻</label>
+                    <div style="display: flex; gap: 5px;">
+                        <select id="quickStartHour" class="form-control" style="width: 50%;">
+                            <option value="">時</option>
+                        </select>
+                        <select id="quickStartMin" class="form-control" style="width: 50%;">
+                            <option value="">分</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="quickEndTime">終了時刻</label>
-                    <input type="time" id="quickEndTime" class="form-control" step="900" min="09:30" max="18:00">
+                    <label>終了時刻</label>
+                    <div style="display: flex; gap: 5px;">
+                        <select id="quickEndHour" class="form-control" style="width: 50%;">
+                            <option value="">時</option>
+                        </select>
+                        <select id="quickEndMin" class="form-control" style="width: 50%;">
+                            <option value="">分</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="form-group">
@@ -359,19 +373,33 @@
             <div class="form-group">
                 <label>作成タイプ</label>
                 <select id="generalQuickType" class="form-control">
-                    <option value="shift">確定シフト</option>
-                    <option value="request">希望シフト</option>
+                    <option value="approved">承認済みシフト</option>
+                    <option value="pending">未承認シフト</option>
                 </select>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="generalQuickStartTime">開始時刻</label>
-                    <input type="time" id="generalQuickStartTime" class="form-control" step="900" min="09:30" max="18:00">
+                    <label>開始時刻</label>
+                    <div style="display: flex; gap: 5px;">
+                        <select id="generalQuickStartHour" class="form-control" style="width: 50%;">
+                            <option value="">時</option>
+                        </select>
+                        <select id="generalQuickStartMin" class="form-control" style="width: 50%;">
+                            <option value="">分</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="generalQuickEndTime">終了時刻</label>
-                    <input type="time" id="generalQuickEndTime" class="form-control" step="900" min="09:30" max="18:00">
+                    <label>終了時刻</label>
+                    <div style="display: flex; gap: 5px;">
+                        <select id="generalQuickEndHour" class="form-control" style="width: 50%;">
+                            <option value="">時</option>
+                        </select>
+                        <select id="generalQuickEndMin" class="form-control" style="width: 50%;">
+                            <option value="">分</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="form-group">
