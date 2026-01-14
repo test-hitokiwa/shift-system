@@ -537,6 +537,7 @@ async function createShift() {
     const userId = userSelect.value;
     const userName = userSelect.options[userSelect.selectedIndex].dataset.name;
     const date = document.getElementById('shiftDate').value;
+    const status = document.getElementById('shiftStatus').value; // 追加
     
     // 時・分から時刻を取得
     const startHour = document.getElementById('shiftStartHour').value;
@@ -558,7 +559,7 @@ async function createShift() {
             user_name: userName,
             date: date,
             time_slots: [`${startTime}-${endTime}`],
-            status: 'approved',
+            status: status, // 変更: 選択されたステータスを使用
             notes: notes
         };
         
@@ -581,6 +582,7 @@ async function createShift() {
             document.getElementById('shiftStartMin').value = '';
             document.getElementById('shiftEndHour').value = '';
             document.getElementById('shiftEndMin').value = '';
+            document.getElementById('shiftStatus').value = 'approved'; // 追加: デフォルトに戻す
             document.getElementById('shiftNotes').value = '';
             
             // シフト一覧を更新
@@ -1382,7 +1384,7 @@ function openQuickCreateForDate(dateStr) {
     document.getElementById('quickStartTime').value = '';
     document.getElementById('quickEndTime').value = '';
     document.getElementById('quickNotes').value = '';
-    document.getElementById('quickCreateType').value = 'shift';
+    document.getElementById('quickCreateType').value = 'approved';
     
     document.getElementById('quickCreateModal').style.display = 'flex';
 }
@@ -1408,40 +1410,21 @@ async function saveQuickCreate() {
     }
     
     try {
-        if (type === 'shift') {
-            // 確定シフトを作成
-            const shiftData = {
-                user_id: userId,
-                user_name: userName,
-                date: date,
-                start_time: startTime,
-                end_time: endTime,
-                is_confirmed: true,
-                notes: notes
-            };
-            
-            await fetch(API_BASE_URL + '/tables/shifts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(shiftData)
-            });
-        } else {
-            // 希望シフトを作成
-            const requestData = {
-                user_id: userId,
-                user_name: userName,
-                date: date,
-                time_slots: [`${startTime}-${endTime}`],
-                status: 'pending',
-                notes: notes
-            };
-            
-            await fetch(API_BASE_URL + '/tables/shift_requests', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestData)
-            });
-        }
+        // すべて shift_requests テーブルに保存（承認済み or 未承認）
+        const requestData = {
+            user_id: userId,
+            user_name: userName,
+            date: date,
+            time_slots: [`${startTime}-${endTime}`],
+            status: type, // 'approved' or 'pending'
+            notes: notes
+        };
+        
+        await fetch(API_BASE_URL + '/tables/shift_requests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+        });
         
         showToast('作成しました', 'success');
         closeQuickCreateModal();
