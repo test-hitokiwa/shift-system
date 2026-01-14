@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('shiftDate').value = today;
     
     // 時間・分の選択肢を生成
-    generateHourMinOptions();
+    initializeAllHourMinOptions();
     
     // 初期データ読み込み
     await loadUsers();
@@ -94,18 +94,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // 時間・分の選択肢を生成（9～18時、0・15・30・45分）
-function generateHourMinOptions() {
-    // シフト作成用
-    const shiftStartHour = document.getElementById('shiftStartHour');
-    const shiftStartMin = document.getElementById('shiftStartMin');
-    const shiftEndHour = document.getElementById('shiftEndHour');
-    const shiftEndMin = document.getElementById('shiftEndMin');
+// 時・分のオプションを生成する汎用関数
+function generateHourMinOptions(hourSelectId, minSelectId) {
+    const hourSelect = document.getElementById(hourSelectId);
+    const minSelect = document.getElementById(minSelectId);
     
-    // シフト管理用
-    const mgmtStartHour = document.getElementById('mgmtStartHour');
-    const mgmtStartMin = document.getElementById('mgmtStartMin');
-    const mgmtEndHour = document.getElementById('mgmtEndHour');
-    const mgmtEndMin = document.getElementById('mgmtEndMin');
+    if (!hourSelect || !minSelect) return;
     
     // 時間の選択肢（9～18）
     const hours = [];
@@ -116,49 +110,34 @@ function generateHourMinOptions() {
     // 分の選択肢（0, 15, 30, 45）
     const minutes = ['00', '15', '30', '45'];
     
-    // シフト作成用：時間
-    [shiftStartHour, shiftEndHour].forEach(select => {
-        select.innerHTML = '<option value="">時</option>';
-        hours.forEach(h => {
-            const option = document.createElement('option');
-            option.value = h.toString().padStart(2, '0');
-            option.textContent = h + '時';
-            select.appendChild(option);
-        });
+    // 時間のオプションを生成
+    hourSelect.innerHTML = '<option value="">時</option>';
+    hours.forEach(h => {
+        const option = document.createElement('option');
+        option.value = h.toString().padStart(2, '0');
+        option.textContent = h + '時';
+        hourSelect.appendChild(option);
     });
     
-    // シフト作成用：分
-    [shiftStartMin, shiftEndMin].forEach(select => {
-        select.innerHTML = '<option value="">分</option>';
-        minutes.forEach(m => {
-            const option = document.createElement('option');
-            option.value = m;
-            option.textContent = m + '分';
-            select.appendChild(option);
-        });
+    // 分のオプションを生成
+    minSelect.innerHTML = '<option value="">分</option>';
+    minutes.forEach(m => {
+        const option = document.createElement('option');
+        option.value = m;
+        option.textContent = m + '分';
+        minSelect.appendChild(option);
     });
+}
+
+// 初期化時にすべての時・分選択を生成
+function initializeAllHourMinOptions() {
+    // シフト作成用
+    generateHourMinOptions('shiftStartHour', 'shiftStartMin');
+    generateHourMinOptions('shiftEndHour', 'shiftEndMin');
     
-    // シフト管理用：時間
-    [mgmtStartHour, mgmtEndHour].forEach(select => {
-        select.innerHTML = '<option value="">時</option>';
-        hours.forEach(h => {
-            const option = document.createElement('option');
-            option.value = h.toString().padStart(2, '0');
-            option.textContent = h + '時';
-            select.appendChild(option);
-        });
-    });
-    
-    // シフト管理用：分
-    [mgmtStartMin, mgmtEndMin].forEach(select => {
-        select.innerHTML = '<option value="">分</option>';
-        minutes.forEach(m => {
-            const option = document.createElement('option');
-            option.value = m;
-            option.textContent = m + '分';
-            select.appendChild(option);
-        });
-    });
+    // シフト管理用
+    generateHourMinOptions('mgmtStartHour', 'mgmtStartMin');
+    generateHourMinOptions('mgmtEndHour', 'mgmtEndMin');
 }
 
 // 時・分から時刻文字列を生成
