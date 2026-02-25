@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('shiftFilterMonth').value = thisMonth;
     document.getElementById('calendarMonth').value = thisMonth;
     document.getElementById('mgmtMonth').value = thisMonth;
+    document.getElementById('summaryMonth').value = thisMonth; // 追加
     
     // 今日の日付を設定
     const today = new Date().toISOString().split('T')[0];
@@ -1582,8 +1583,9 @@ function switchTab(tabName) {
         'management': 0,
         'requests': 1,
         'shifts': 2,
-        'users': 3,
-        'calendar': 4
+        'summary': 3,
+        'users': 4,
+        'calendar': 5
     };
     tabs[tabMap[tabName]].classList.add('active');
     
@@ -1591,8 +1593,14 @@ function switchTab(tabName) {
     document.getElementById('managementTab').style.display = tabName === 'management' ? 'block' : 'none';
     document.getElementById('requestsTab').style.display = tabName === 'requests' ? 'block' : 'none';
     document.getElementById('shiftsTab').style.display = tabName === 'shifts' ? 'block' : 'none';
+    document.getElementById('summaryTab').style.display = tabName === 'summary' ? 'block' : 'none';
     document.getElementById('usersTab').style.display = tabName === 'users' ? 'block' : 'none';
     document.getElementById('calendarTab').style.display = tabName === 'calendar' ? 'block' : 'none';
+    
+    // 稼働時間集計タブに切り替えたときにデータを読み込む
+    if (tabName === 'summary') {
+        loadSummary();
+    }
 }
 
 // 日付フォーマット
@@ -1836,3 +1844,147 @@ function logout() {
     localStorage.removeItem('currentUser');
     window.location.href = 'index.html';
 }
+
+// 稼働時間集計を読み込む
+async function loadSummary() {
+    const monthInput = document.getElementById('summaryMonth').value;
+    if (!monthInput) {
+        showToast('表示月を選択してください', 'error');
+        return;
+    }
+    
+    const [year, month] = monthInput.split('-').map(Number);
+    
+    // データを取得
+    const requests = await getCachedRequestData();
+    const users = allUsers.filter(u => u.role === 'staff');
+    
+    // ユーザーごとの週次集計を計算
+    const userSummaries = calculateUserWeeklySummaries(year, month, requests, users);
+    
+    // 表示
+    displayUserWeeklySummaries(userSummaries, year, month);
+}
+
+// ユーザーごとの週次稼働時間を計算
+function calculateUserWeeklySummaries(year, month, requests, users) {
+    const monthStart = new Date(year, month - 1, 1);
+    const monthEnd = new Date(year, month, 0);
+    const daysInMonth = monthEnd.getDate();
+    
+    // 週の定義を作成
+    const weeks = [];
+    let currentWeek = { weekNumber: 1, startDay: 1, endDay: 0 };
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month - 1, day);
+        const dayOfWeek = date.getDay();
+        
+        // 土曜日（6）または月末で週を区切る
+        if (dayOfWeek === 6 || day === daysInMonth) {
+            currentWeek.endDay = day;
+            weeks.push(currentWeek);
+            
+            // 次の週を準備
+            if (day < daysInMonth) {
+                currentWeek = {
+                    weekNumber: weeks.length + 1,
+                    startDay: day + 1,
+                    endDay: 0
+                };
+            }
+        }
+    }
+    
+    // ユーザーごとに集計
+    const userSummaries = users.map(user => {
+        const userRequests = requests.filter(r => r.user_id === user.id);
+        
+        const weeklyData = weeks.map(week => {
+            let pendingHours = 0;
+            let approvedHours = 0;
+            
+            for (let day = week.startDay; day <= week.endDay; day++) {
+                const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayRequests = userRequests.filter(r => r.date === dateStr);
+                
+                dayRequests.forEach(req => {
+                    if (req.time_slots && req.time_slots.length > 0) {
+                        const [start, end] = req.time_slots[0].split('-');
+                        const hours = calculateHours(start, end);
+                        
+                        if (req.status === 'pending') {
+                            pendingHours += hours;
+                        } else if (req.status === 'approved') {
+                            approvedHours += hours;
+                        }
+                    }
+                });
+            }
+            
+            return {
+                weekNumber: week.weekNumber,
+                startDay: week.startDay,
+                endDay: week.endDay,
+                pendingHours: pendingHours,
+                approvedHours: approvedHours
+            };
+        });
+        
+        return {
+            userId: user.id,
+            userName: user.name,
+            weeks: weeklyData
+        };
+    });
+    
+    return userSummaries;
+}
+
+// ユーザーごとの週次集計を表示
+function displayUserWeeklySummaries(userSummaries, year, month) {
+    const container = document.getElementById('summaryContent');
+    
+    if (userSummaries.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #666;">スタッフがいません</p>';
+        return;
+    }
+    
+    let html = '';
+    
+    userSummaries.forEach(userSummary => {
+        html += `
+            <div style="margin-bottom: 30px; border: 1px solid #ddd; border-radius: 8px; padding: 20px; background: #f9f9f9;">
+                <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #333;">${userSummary.userName}</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
+        `;
+        
+        userSummary.weeks.forEach(week => {
+            html += `
+                <div style="border: 2px solid #ddd; border-radius: 8px; padding: 12px; background: white;">
+                    <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px; text-align: center; color: #555;">
+                        第${week.weekNumber}週 ${week.startDay}-${week.endDay}日
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #666; font-size: 12px;">未承認</span>
+                            <span style="color: #ff9800; font-weight: bold; font-size: 15px;">${week.pendingHours.toFixed(1)}h</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #666; font-size: 12px;">承認済み</span>
+                            <span style="color: #28a745; font-weight: bold; font-size: 15px;">${week.approvedHours.toFixed(1)}h</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
