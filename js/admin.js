@@ -1972,7 +1972,7 @@ function displayUserWeeklySummaries(userSummaries, year, month) {
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="color: #666; font-size: 12px;">承認済み</span>
-                            <span style="color: #28a745; font-weight: bold; font-size: 15px;">${week.approvedHours.toFixed(1)}h</span>
+                            <span style="color: ${week.approvedHours < 10 ? '#dc3545' : '#28a745'}; font-weight: bold; font-size: 15px;">${week.approvedHours.toFixed(1)}h</span>
                         </div>
                     </div>
                 </div>
