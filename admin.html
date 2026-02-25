@@ -27,6 +27,7 @@
                 <button class="tab active" onclick="switchTab('management')">シフト管理</button>
                 <button class="tab" onclick="switchTab('requests')">希望シフト一覧</button>
                 <button class="tab" onclick="switchTab('shifts')">シフト作成</button>
+                <button class="tab" onclick="switchTab('summary')">稼働時間集計</button>
                 <button class="tab" onclick="switchTab('users')">ユーザー管理</button>
                 <button class="tab" onclick="switchTab('calendar')">カレンダー</button>
             </div>
@@ -138,6 +139,19 @@
                 </div>
 
                 <div id="shiftsList"></div>
+            </div>
+
+            <!-- 稼働時間集計タブ -->
+            <div id="summaryTab" class="tab-content" style="display: none;">
+                <div class="filter-section">
+                    <div class="form-group">
+                        <label for="summaryMonth">表示月</label>
+                        <input type="month" id="summaryMonth" class="form-control">
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadSummary()">更新</button>
+                </div>
+                
+                <div id="summaryContent"></div>
             </div>
 
             <!-- ユーザー管理タブ -->
