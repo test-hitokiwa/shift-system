@@ -1856,7 +1856,7 @@ async function loadSummary() {
     const [year, month] = monthInput.split('-').map(Number);
     
     // データを取得
-    const requests = await getCachedRequestData();
+    const { requests } = await getCachedData();
     const users = allUsers.filter(u => u.role === 'staff');
     
     // ユーザーごとの週次集計を計算
