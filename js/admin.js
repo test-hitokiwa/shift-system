@@ -1950,8 +1950,66 @@ function displayUserWeeklySummaries(userSummaries, year, month) {
         return;
     }
     
+    // 全体の合計を計算
+    const weekCount = userSummaries[0]?.weeks.length || 0;
+    const totalWeeks = [];
+    
+    for (let i = 0; i < weekCount; i++) {
+        let totalPending = 0;
+        let totalApproved = 0;
+        
+        userSummaries.forEach(userSummary => {
+            const week = userSummary.weeks[i];
+            if (week) {
+                totalPending += week.pendingHours;
+                totalApproved += week.approvedHours;
+            }
+        });
+        
+        totalWeeks.push({
+            weekNumber: i + 1,
+            startDay: userSummaries[0].weeks[i].startDay,
+            endDay: userSummaries[0].weeks[i].endDay,
+            pendingHours: totalPending,
+            approvedHours: totalApproved
+        });
+    }
+    
     let html = '';
     
+    // 全体の合計を上部に表示
+    html += `
+        <div style="margin-bottom: 30px; border: 2px solid #667eea; border-radius: 8px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px; color: white; text-align: center;">全体合計</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
+    `;
+    
+    totalWeeks.forEach(week => {
+        html += `
+            <div style="border: 2px solid white; border-radius: 8px; padding: 12px; background: rgba(255, 255, 255, 0.95);">
+                <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px; text-align: center; color: #555;">
+                    第${week.weekNumber}週 ${week.startDay}-${week.endDay}日
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #666; font-size: 12px;">未承認</span>
+                        <span style="color: #ff9800; font-weight: bold; font-size: 15px;">${week.pendingHours.toFixed(1)}h</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #666; font-size: 12px;">承認済み</span>
+                        <span style="color: ${week.approvedHours < 10 ? '#dc3545' : '#28a745'}; font-weight: bold; font-size: 15px;">${week.approvedHours.toFixed(1)}h</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    // 各ユーザーの週次集計を表示
     userSummaries.forEach(userSummary => {
         html += `
             <div style="margin-bottom: 30px; border: 1px solid #ddd; border-radius: 8px; padding: 20px; background: #f9f9f9;">
