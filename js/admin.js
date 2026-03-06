@@ -1776,22 +1776,52 @@ async function deleteShiftFromModal() {
 async function openRequestDetail(requestId) {
     try {
         const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`);
+        if (!response.ok) throw new Error('データの取得に失敗しました');
+        
         const request = await response.json();
         
-        // 編集モーダルを開く
-        document.getElementById('editRequestId').value = request.id;
-        document.getElementById('editRequestDate').value = request.date;
-        document.getElementById('editRequestUser').textContent = request.user_name;
+        // シンプルなモーダル表示（編集は希望シフト一覧タブまたはシフト管理タブから）
+        const timeSlot = request.time_slots && request.time_slots.length > 0 ? request.time_slots[0] : '';
+        const statusText = request.status === 'approved' ? '承認済み' : '未承認';
+        const statusColor = request.status === 'approved' ? '#28a745' : '#ff9800';
         
-        // 時間を設定
-        if (request.time_slots && request.time_slots.length > 0) {
-            const [start, end] = request.time_slots[0].split('-');
-            document.getElementById('editStartTime').value = start;
-            document.getElementById('editEndTime').value = end;
-        }
+        const modalHtml = `
+            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;" onclick="this.remove()">
+                <div style="background: white; padding: 30px; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+                    <h3 style="margin: 0 0 20px 0; color: #333; font-size: 20px;">希望シフト詳細</h3>
+                    <div style="margin-bottom: 15px;">
+                        <div style="color: #666; font-size: 14px;">スタッフ</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #333; margin-top: 5px;">${request.user_name}</div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="color: #666; font-size: 14px;">日付</div>
+                        <div style="font-size: 16px; color: #333; margin-top: 5px;">${request.date}</div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="color: #666; font-size: 14px;">時間</div>
+                        <div style="font-size: 16px; color: #333; margin-top: 5px;">${timeSlot}</div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="color: #666; font-size: 14px;">ステータス</div>
+                        <div style="font-size: 16px; font-weight: bold; color: ${statusColor}; margin-top: 5px;">${statusText}</div>
+                    </div>
+                    ${request.notes ? `
+                    <div style="margin-bottom: 15px;">
+                        <div style="color: #666; font-size: 14px;">備考</div>
+                        <div style="font-size: 14px; color: #333; margin-top: 5px; background: #f8f9fa; padding: 10px; border-radius: 6px;">${request.notes}</div>
+                    </div>
+                    ` : ''}
+                    <div style="text-align: center; margin-top: 25px;">
+                        <button onclick="this.closest('div[style*=fixed]').remove()" style="padding: 10px 30px; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold;">閉じる</button>
+                    </div>
+                    <div style="text-align: center; margin-top: 10px; font-size: 13px; color: #999;">
+                        ※編集は「希望シフト一覧」タブまたは「シフト管理」タブから行ってください
+                    </div>
+                </div>
+            </div>
+        `;
         
-        document.getElementById('editNotes').value = request.notes || '';
-        document.getElementById('editModal').style.display = 'flex';
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
     } catch (error) {
         console.error('エラー:', error);
         showToast('シフト情報の読み込みに失敗しました', 'error');
@@ -1898,15 +1928,28 @@ async function loadSummary() {
     
     const [year, month] = monthInput.split('-').map(Number);
     
-    // データを取得
-    const { requests } = await getCachedData();
-    const users = allUsers.filter(u => u.role === 'staff');
-    
-    // ユーザーごとの週次集計を計算
-    const userSummaries = calculateUserWeeklySummaries(year, month, requests, users);
-    
-    // 表示
-    displayUserWeeklySummaries(userSummaries, year, month);
+    try {
+        // データを取得
+        const { requests, users: usersData } = await getCachedData();
+        
+        // スタッフのみをフィルター
+        const users = usersData.filter(u => u.role === 'staff');
+        
+        if (users.length === 0) {
+            document.getElementById('summaryContent').innerHTML = '<p style="text-align: center; color: #666;">スタッフがいません</p>';
+            return;
+        }
+        
+        // ユーザーごとの週次集計を計算
+        const userSummaries = calculateUserWeeklySummaries(year, month, requests, users);
+        
+        // 表示
+        displayUserWeeklySummaries(userSummaries, year, month);
+    } catch (error) {
+        console.error('エラー:', error);
+        showToast('データの読み込みに失敗しました', 'error');
+        document.getElementById('summaryContent').innerHTML = '<p style="text-align: center; color: #dc3545;">データの読み込みに失敗しました</p>';
+    }
 }
 
 // ユーザーごとの週次稼働時間を計算
