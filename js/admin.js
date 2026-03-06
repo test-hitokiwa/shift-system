@@ -84,14 +84,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadUsersList();
     await loadCalendar();
     
-    // シフト管理タブの初期化
+    // シフト管理タブの初期化（loadUsers の後に実行）
     const mgmtStaffSelect = document.getElementById('mgmtStaff');
-    allUsers.filter(u => u.role === 'staff').forEach(user => {
-        const option = document.createElement('option');
-        option.value = user.id;
-        option.textContent = user.name;
-        mgmtStaffSelect.appendChild(option);
-    });
+    if (mgmtStaffSelect && allUsers && allUsers.length > 0) {
+        mgmtStaffSelect.innerHTML = '<option value="">選択してください</option>';
+        allUsers.filter(u => u.role === 'staff').forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = user.name;
+            mgmtStaffSelect.appendChild(option);
+        });
+    } else {
+        console.error('mgmtStaffSelect または allUsers が見つかりません', {
+            mgmtStaffSelect: !!mgmtStaffSelect,
+            allUsersLength: allUsers ? allUsers.length : 0
+        });
+    }
 });
 
 // 時間・分の選択肢を生成（9～18時、0・15・30・45分）
