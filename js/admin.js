@@ -1619,10 +1619,11 @@ async function openRequestDetail(requestId) {
         const statusText = request.status === 'approved' ? '承認済み' : '未承認';
         const statusColor = request.status === 'approved' ? '#28a745' : '#ff9800';
         
-        // 編集・承認・削除ボタンを追加
+        // 編集・承認・削除ボタンを追加（ボタンサイズを統一）
+        const buttonStyle = "width: 100px; padding: 12px 0; background: #COLOR#; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;";
         const approveButton = request.status === 'pending' 
-            ? `<button onclick="approveRequestFromDetail('${request.id}')" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; margin: 5px;">承認</button>`
-            : `<button onclick="unapproveRequestFromDetail('${request.id}')" style="padding: 10px 20px; background: #ffc107; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; margin: 5px;">承認取消</button>`;
+            ? `<button onclick="approveRequestFromDetail('${request.id}')" style="${buttonStyle.replace('#COLOR#', '#28a745')}">承認</button>`
+            : `<button onclick="unapproveRequestFromDetail('${request.id}')" style="${buttonStyle.replace('#COLOR#', '#ffc107')}">承認取消</button>`;
         
         const modalHtml = `
             <div id="requestDetailModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;" onclick="this.remove()">
@@ -1652,11 +1653,11 @@ async function openRequestDetail(requestId) {
                         <div style="color: #666; font-size: 14px;">備考</div>
                         <textarea id="detailNotes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; margin-top: 5px; font-size: 14px; min-height: 60px;">${request.notes || ''}</textarea>
                     </div>
-                    <div style="text-align: center; margin-top: 25px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
-                        <button onclick="updateRequestFromDetail('${request.id}')" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer;">保存</button>
+                    <div style="text-align: center; margin-top: 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <button onclick="updateRequestFromDetail('${request.id}')" style="${buttonStyle.replace('#COLOR#', '#667eea')}">保存</button>
                         ${approveButton}
-                        <button onclick="deleteRequestFromDetail('${request.id}')" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer;">削除</button>
-                        <button onclick="document.getElementById('requestDetailModal').remove()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer;">閉じる</button>
+                        <button onclick="deleteRequestFromDetail('${request.id}')" style="${buttonStyle.replace('#COLOR#', '#dc3545')}">削除</button>
+                        <button onclick="document.getElementById('requestDetailModal').remove()" style="${buttonStyle.replace('#COLOR#', '#6c757d')}">閉じる</button>
                     </div>
                 </div>
             </div>
