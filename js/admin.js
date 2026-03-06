@@ -1613,14 +1613,20 @@ async function openRequestDetail(requestId) {
         
         const request = await response.json();
         
-        // シンプルなモーダル表示（編集は希望シフト一覧タブまたはシフト管理タブから）
+        // 時間を分割
         const timeSlot = request.time_slots && request.time_slots.length > 0 ? request.time_slots[0] : '';
+        const [startTime, endTime] = timeSlot.split('-');
         const statusText = request.status === 'approved' ? '承認済み' : '未承認';
         const statusColor = request.status === 'approved' ? '#28a745' : '#ff9800';
         
+        // 編集・承認・削除ボタンを追加
+        const approveButton = request.status === 'pending' 
+            ? `<button onclick="approveRequestFromDetail('${request.id}')" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; margin: 5px;">承認</button>`
+            : `<button onclick="unapproveRequestFromDetail('${request.id}')" style="padding: 10px 20px; background: #ffc107; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; margin: 5px;">承認取消</button>`;
+        
         const modalHtml = `
-            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;" onclick="this.remove()">
-                <div style="background: white; padding: 30px; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+            <div id="requestDetailModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;" onclick="this.remove()">
+                <div style="background: white; padding: 30px; border-radius: 12px; max-width: 450px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
                     <h3 style="margin: 0 0 20px 0; color: #333; font-size: 20px;">希望シフト詳細</h3>
                     <div style="margin-bottom: 15px;">
                         <div style="color: #666; font-size: 14px;">スタッフ</div>
@@ -1631,24 +1637,26 @@ async function openRequestDetail(requestId) {
                         <div style="font-size: 16px; color: #333; margin-top: 5px;">${request.date}</div>
                     </div>
                     <div style="margin-bottom: 15px;">
-                        <div style="color: #666; font-size: 14px;">時間</div>
-                        <div style="font-size: 16px; color: #333; margin-top: 5px;">${timeSlot}</div>
+                        <div style="color: #666; font-size: 14px;">開始時刻</div>
+                        <input type="text" id="detailStartTime" value="${startTime || ''}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; margin-top: 5px; font-size: 16px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <div style="color: #666; font-size: 14px;">終了時刻</div>
+                        <input type="text" id="detailEndTime" value="${endTime || ''}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; margin-top: 5px; font-size: 16px;">
                     </div>
                     <div style="margin-bottom: 15px;">
                         <div style="color: #666; font-size: 14px;">ステータス</div>
                         <div style="font-size: 16px; font-weight: bold; color: ${statusColor}; margin-top: 5px;">${statusText}</div>
                     </div>
-                    ${request.notes ? `
                     <div style="margin-bottom: 15px;">
                         <div style="color: #666; font-size: 14px;">備考</div>
-                        <div style="font-size: 14px; color: #333; margin-top: 5px; background: #f8f9fa; padding: 10px; border-radius: 6px;">${request.notes}</div>
+                        <textarea id="detailNotes" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; margin-top: 5px; font-size: 14px; min-height: 60px;">${request.notes || ''}</textarea>
                     </div>
-                    ` : ''}
-                    <div style="text-align: center; margin-top: 25px;">
-                        <button onclick="this.closest('div[style*=fixed]').remove()" style="padding: 10px 30px; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold;">閉じる</button>
-                    </div>
-                    <div style="text-align: center; margin-top: 10px; font-size: 13px; color: #999;">
-                        ※編集は「希望シフト一覧」タブまたは「シフト管理」タブから行ってください
+                    <div style="text-align: center; margin-top: 25px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+                        <button onclick="updateRequestFromDetail('${request.id}')" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer;">保存</button>
+                        ${approveButton}
+                        <button onclick="deleteRequestFromDetail('${request.id}')" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer;">削除</button>
+                        <button onclick="document.getElementById('requestDetailModal').remove()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer;">閉じる</button>
                     </div>
                 </div>
             </div>
@@ -1658,6 +1666,115 @@ async function openRequestDetail(requestId) {
     } catch (error) {
         console.error('エラー:', error);
         showToast('シフト情報の読み込みに失敗しました', 'error');
+    }
+}
+
+// 詳細モーダルから更新
+async function updateRequestFromDetail(requestId) {
+    const startTime = document.getElementById('detailStartTime').value;
+    const endTime = document.getElementById('detailEndTime').value;
+    const notes = document.getElementById('detailNotes').value;
+    
+    if (!startTime || !endTime) {
+        showToast('開始時刻と終了時刻を入力してください', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_update.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: requestId,
+                time_slots: [`${startTime}-${endTime}`],
+                notes: notes
+            })
+        });
+        
+        if (response.ok) {
+            showToast('更新しました', 'success');
+            document.getElementById('requestDetailModal').remove();
+            clearCache();
+            loadCalendar();
+        } else {
+            throw new Error('更新に失敗しました');
+        }
+    } catch (error) {
+        console.error('エラー:', error);
+        showToast('更新に失敗しました', 'error');
+    }
+}
+
+// 詳細モーダルから承認
+async function approveRequestFromDetail(requestId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_approve.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: requestId, action: 'approve' })
+        });
+        
+        if (response.ok) {
+            showToast('承認しました', 'success');
+            document.getElementById('requestDetailModal').remove();
+            clearCache();
+            loadCalendar();
+        } else {
+            throw new Error('承認に失敗しました');
+        }
+    } catch (error) {
+        console.error('エラー:', error);
+        showToast('承認に失敗しました', 'error');
+    }
+}
+
+// 詳細モーダルから承認取消
+async function unapproveRequestFromDetail(requestId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_approve.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: requestId, action: 'unapprove' })
+        });
+        
+        if (response.ok) {
+            showToast('承認を取り消しました', 'success');
+            document.getElementById('requestDetailModal').remove();
+            clearCache();
+            loadCalendar();
+        } else {
+            throw new Error('承認取消に失敗しました');
+        }
+    } catch (error) {
+        console.error('エラー:', error);
+        showToast('承認取消に失敗しました', 'error');
+    }
+}
+
+// 詳細モーダルから削除
+async function deleteRequestFromDetail(requestId) {
+    if (!confirm('このシフトを削除してもよろしいですか？')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_update/delete/${requestId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: requestId, action: 'delete' })
+        });
+        
+        if (response.ok || response.status === 204) {
+            showToast('削除しました', 'success');
+            document.getElementById('requestDetailModal').remove();
+            clearCache();
+            loadCalendar();
+        } else {
+            throw new Error('削除に失敗しました');
+        }
+    } catch (error) {
+        console.error('エラー:', error);
+        showToast('削除に失敗しました', 'error');
     }
 }
 
