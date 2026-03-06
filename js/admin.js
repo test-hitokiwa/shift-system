@@ -65,14 +65,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // 今月を設定
     const thisMonth = new Date().toISOString().slice(0, 7);
-    document.getElementById('shiftFilterMonth').value = thisMonth;
-    document.getElementById('calendarMonth').value = thisMonth;
-    document.getElementById('mgmtMonth').value = thisMonth;
-    document.getElementById('summaryMonth').value = thisMonth; // 追加
+    const calendarMonthEl = document.getElementById('calendarMonth');
+    const mgmtMonthEl = document.getElementById('mgmtMonth');
+    const summaryMonthEl = document.getElementById('summaryMonth');
     
-    // 今日の日付を設定
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('shiftDate').value = today;
+    if (calendarMonthEl) calendarMonthEl.value = thisMonth;
+    if (mgmtMonthEl) mgmtMonthEl.value = thisMonth;
+    if (summaryMonthEl) summaryMonthEl.value = thisMonth;
     
     // 時間・分の選択肢を生成
     initializeAllHourMinOptions();
@@ -80,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 初期データ読み込み
     await loadUsers();
     await loadShiftRequests();
-    await loadShifts();
+    // await loadShifts(); // シフト作成タブが削除されたため不要
     await loadUsersList();
     await loadCalendar();
     
@@ -140,11 +139,7 @@ function generateHourMinOptions(hourSelectId, minSelectId) {
 
 // 初期化時にすべての時・分選択を生成
 function initializeAllHourMinOptions() {
-    // シフト作成用
-    generateHourMinOptions('shiftStartHour', 'shiftStartMin');
-    generateHourMinOptions('shiftEndHour', 'shiftEndMin');
-    
-    // シフト管理用
+    // シフト管理用のみ
     generateHourMinOptions('mgmtStartHour', 'mgmtStartMin');
     generateHourMinOptions('mgmtEndHour', 'mgmtEndMin');
 }
@@ -252,18 +247,7 @@ async function loadUsers() {
         
         allUsers = usersData;
         
-        // スタッフのみをセレクトボックスに追加
-        const staffUsers = allUsers.filter(user => user.role === 'staff');
-        const select = document.getElementById('shiftUser');
-        select.innerHTML = '<option value="">選択してください</option>';
-        
-        staffUsers.forEach(user => {
-            const option = document.createElement('option');
-            option.value = user.id;
-            option.textContent = user.name;
-            option.dataset.name = user.name;
-            select.appendChild(option);
-        });
+        console.log('loadUsers: ユーザー数', allUsers.length);
     } catch (error) {
         console.error('ユーザー読み込みエラー:', error);
     }
@@ -505,7 +489,7 @@ async function saveRequestEdit() {
             clearCache();
             closeEditModal();
             loadShiftRequests();
-            loadShifts();
+            // loadShifts(); // シフト作成タブが削除されたため不要
         } else {
             throw new Error('作成に失敗しました');
         }
@@ -515,104 +499,8 @@ async function saveRequestEdit() {
     }
 }
 
-// シフトを作成（承認済みの希望シフトとして保存）
-async function createShift() {
-    const userSelect = document.getElementById('shiftUser');
-    const userId = userSelect.value;
-    const userName = userSelect.options[userSelect.selectedIndex].dataset.name;
-    const date = document.getElementById('shiftDate').value;
-    const status = document.getElementById('shiftStatus').value; // 追加
-    
-    // 時・分から時刻を取得
-    const startHour = document.getElementById('shiftStartHour').value;
-    const startMin = document.getElementById('shiftStartMin').value;
-    const endHour = document.getElementById('shiftEndHour').value;
-    const endMin = document.getElementById('shiftEndMin').value;
-    const startTime = getTimeString(startHour, startMin);
-    const endTime = getTimeString(endHour, endMin);
-    const notes = document.getElementById('shiftNotes').value;
-    
-    if (!userId || !date || !startTime || !endTime) {
-        showToast('すべての必須項目を入力してください', 'error');
-        return;
-    }
-    
-    try {
-        const shiftData = {
-            user_id: userId,
-            user_name: userName,
-            date: date,
-            time_slots: [`${startTime}-${endTime}`],
-            status: status, // 変更: 選択されたステータスを使用
-            notes: notes
-        };
-        
-        const response = await fetch(API_BASE_URL + '/tables/shift_requests', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(shiftData)
-        });
-        
-        if (response.ok) {
-            showToast('シフトを作成しました！', 'success');
-            clearCache();
-            
-            // フォームをリセット
-            document.getElementById('shiftUser').value = '';
-            document.getElementById('shiftDate').value = new Date().toISOString().split('T')[0];
-            document.getElementById('shiftStartHour').value = '';
-            document.getElementById('shiftStartMin').value = '';
-            document.getElementById('shiftEndHour').value = '';
-            document.getElementById('shiftEndMin').value = '';
-            document.getElementById('shiftStatus').value = 'approved'; // 追加: デフォルトに戻す
-            document.getElementById('shiftNotes').value = '';
-            
-            // シフト一覧を更新
-            loadShifts();
-        } else {
-            throw new Error('作成に失敗しました');
-        }
-    } catch (error) {
-        console.error('エラー:', error);
-        showToast('シフトの作成に失敗しました', 'error');
-    }
-}
-
-// シフト一覧を読み込む
-async function loadShifts() {
-    try {
-        const { shifts: shiftsData } = await getCachedData();
-        
-        allShifts = shiftsData;
-        
-        // 選択された月でフィルター
-        const filterMonth = document.getElementById('shiftFilterMonth').value;
-        const filteredShifts = allShifts.filter(shift => 
-            shift.date.startsWith(filterMonth) && shift.is_confirmed
-        );
-        
-        displayShifts(filteredShifts);
-    } catch (error) {
-        console.error('エラー:', error);
-        document.getElementById('shiftsList').innerHTML = '<p style="color: #dc3545;">読み込みに失敗しました</p>';
-    }
-}
-
-// シフト一覧を表示
-function displayShifts(shifts) {
-    const container = document.getElementById('shiftsList');
-    
-    if (shifts.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">-</div>
-                <h3>確定シフトがありません</h3>
-                <p>選択された月の確定シフトはまだありません</p>
-            </div>
-        `;
-        return;
+// シフト作成タブは削除されたため、これらの関数は不要
+// createShift(), loadShifts(), displayShifts() を削除
     }
     
     // 日付順にソート
@@ -666,7 +554,7 @@ async function deleteShift(shiftId) {
         if (response.ok || response.status === 204) {
             showToast('シフトを削除しました', 'success');
             clearCache();
-            loadShifts();
+            // loadShifts(); // シフト作成タブが削除されたため不要
             loadCalendar();
         } else {
             throw new Error('削除に失敗しました');
@@ -796,7 +684,7 @@ async function saveUserFromModal() {
             closeUserEditModal();
             loadUsersList();
             loadUsers();
-            loadShifts();
+            // loadShifts(); // シフト作成タブが削除されたため不要
             loadShiftRequests();
             loadCalendar();
         } else {
@@ -916,7 +804,7 @@ window.deleteUser = async function(userId) {
             clearCache();
             loadUsersList();
             loadUsers();
-            loadShifts();
+            // loadShifts(); // シフト作成タブが削除されたため不要
             loadShiftRequests();
             loadCalendar();
         } else {
@@ -1595,7 +1483,7 @@ async function deleteMgmtItem() {
             closeMgmtModal();
             loadManagementCalendar();
             loadShiftRequests();
-            loadShifts();
+            // loadShifts(); // シフト作成タブが削除されたため不要
         } else {
             throw new Error('削除に失敗しました');
         }
@@ -1733,7 +1621,7 @@ async function saveShiftEdit() {
         if (response.ok) {
             showToast('シフトを更新しました', 'success');
             closeShiftEditModal();
-            loadShifts();
+            // loadShifts(); // シフト作成タブが削除されたため不要
             loadCalendar();
         } else {
             const error = await response.json();
@@ -1769,7 +1657,7 @@ async function deleteShiftFromModal() {
         if (response.ok || response.status === 204) {
             showToast('シフトを削除しました', 'success');
             closeShiftEditModal();
-            loadShifts();
+            // loadShifts(); // シフト作成タブが削除されたため不要
             loadCalendar();
         } else {
             throw new Error('削除に失敗しました');
