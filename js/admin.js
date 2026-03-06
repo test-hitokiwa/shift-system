@@ -266,7 +266,8 @@ async function loadShiftRequests() {
     try {
         const { requests: requestsData } = await getCachedData();
         
-        allRequests = requestsData;
+        // 未承認シフトのみをフィルター
+        allRequests = requestsData.filter(req => req.status === 'pending');
         
         // フィルター適用
         let filteredRequests = [...allRequests];
@@ -274,11 +275,6 @@ async function loadShiftRequests() {
         const filterDate = document.getElementById('filterDate').value;
         if (filterDate) {
             filteredRequests = filteredRequests.filter(req => req.date === filterDate);
-        }
-        
-        const filterStatus = document.getElementById('filterStatus').value;
-        if (filterStatus !== 'all') {
-            filteredRequests = filteredRequests.filter(req => req.status === filterStatus);
         }
         
         // 日付順にソート（新しい順）
@@ -1613,17 +1609,15 @@ function switchTab(tabName) {
     const tabMap = {
         'management': 0,
         'requests': 1,
-        'shifts': 2,
-        'summary': 3,
-        'users': 4,
-        'calendar': 5
+        'summary': 2,
+        'users': 3,
+        'calendar': 4
     };
     tabs[tabMap[tabName]].classList.add('active');
     
     // タブコンテンツの表示を切り替え
     document.getElementById('managementTab').style.display = tabName === 'management' ? 'block' : 'none';
     document.getElementById('requestsTab').style.display = tabName === 'requests' ? 'block' : 'none';
-    document.getElementById('shiftsTab').style.display = tabName === 'shifts' ? 'block' : 'none';
     document.getElementById('summaryTab').style.display = tabName === 'summary' ? 'block' : 'none';
     document.getElementById('usersTab').style.display = tabName === 'users' ? 'block' : 'none';
     document.getElementById('calendarTab').style.display = tabName === 'calendar' ? 'block' : 'none';
@@ -1779,11 +1773,29 @@ async function deleteShiftFromModal() {
 }
 
 // 希望シフト詳細を開く（未承認・承認済み両方）
-function openRequestDetail(requestId) {
-    const request = allRequests.find(r => r.id === requestId);
-    if (!request) return;
-    
-    alert(`希望シフト詳細\n\nスタッフ: ${request.user_name}\n日付: ${request.date}\n時間: ${request.time_slots.join(', ')}\nステータス: ${request.status === 'approved' ? '承認済み' : '未承認'}\n備考: ${request.notes || 'なし'}`);
+async function openRequestDetail(requestId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests/${requestId}`);
+        const request = await response.json();
+        
+        // 編集モーダルを開く
+        document.getElementById('editRequestId').value = request.id;
+        document.getElementById('editRequestDate').value = request.date;
+        document.getElementById('editRequestUser').textContent = request.user_name;
+        
+        // 時間を設定
+        if (request.time_slots && request.time_slots.length > 0) {
+            const [start, end] = request.time_slots[0].split('-');
+            document.getElementById('editStartTime').value = start;
+            document.getElementById('editEndTime').value = end;
+        }
+        
+        document.getElementById('editNotes').value = request.notes || '';
+        document.getElementById('editModal').style.display = 'flex';
+    } catch (error) {
+        console.error('エラー:', error);
+        showToast('シフト情報の読み込みに失敗しました', 'error');
+    }
 }
 
 // カレンダータブから空白日クリック
