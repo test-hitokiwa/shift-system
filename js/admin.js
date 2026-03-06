@@ -500,70 +500,7 @@ async function saveRequestEdit() {
 }
 
 // シフト作成タブは削除されたため、これらの関数は不要
-// createShift(), loadShifts(), displayShifts() を削除
-    }
-    
-    // 日付順にソート
-    shifts.sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    // 日付ごとにグループ化
-    const groupedByDate = {};
-    shifts.forEach(shift => {
-        if (!groupedByDate[shift.date]) {
-            groupedByDate[shift.date] = [];
-        }
-        groupedByDate[shift.date].push(shift);
-    });
-    
-    container.innerHTML = Object.entries(groupedByDate).map(([date, dateShifts]) => `
-        <div style="margin-bottom: 30px;">
-            <h3 style="color: #667eea; margin-bottom: 16px;">${formatDate(date)}</h3>
-            ${dateShifts.map(shift => `
-                <div class="shift-card">
-                    <div class="shift-card-header">
-                        <span class="shift-date">${shift.user_name}</span>
-                        <button class="btn btn-danger btn-small" onclick="deleteShift('${shift.id}')">削除</button>
-                    </div>
-                    <div class="shift-time">${shift.start_time} - ${shift.end_time}</div>
-                    ${shift.notes ? `<div class="shift-notes">${shift.notes}</div>` : ''}
-                </div>
-            `).join('')}
-        </div>
-    `).join('');
-}
-
-// シフトを削除
-async function deleteShift(shiftId) {
-    if (!confirm('このシフトを削除してもよろしいですか？')) {
-        return;
-    }
-    
-    try {
-        // POST で削除処理（DELETE が使えないため）
-        const response = await fetch(`${API_BASE_URL}/tables/shifts_update/delete/${shiftId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                id: shiftId,
-                action: 'delete'
-            })
-        });
-        
-        if (response.ok || response.status === 204) {
-            showToast('シフトを削除しました', 'success');
-            clearCache();
-            // loadShifts(); // シフト作成タブが削除されたため不要
-            loadCalendar();
-        } else {
-            throw new Error('削除に失敗しました');
-        }
-    } catch (error) {
-        console.error('エラー:', error);
-        showToast('シフトの削除に失敗しました: ' + error.message, 'error');
-    }
-}
+// createShift(), loadShifts(), displayShifts(), deleteShift() を削除
 
 // ユーザー一覧を読み込む
 async function loadUsersList() {
