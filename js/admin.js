@@ -206,8 +206,8 @@ async function getCachedData() {
     // キャッシュが無効な場合は新規取得
     const [usersResponse, shiftsResponse, requestsResponse] = await Promise.all([
         fetch(API_BASE_URL + '/tables/users'),
-        fetch(API_BASE_URL + '/tables/shifts?limit=100'),
-        fetch(API_BASE_URL + '/tables/shift_requests?limit=100')
+        fetch(API_BASE_URL + '/tables/shifts?limit=1000'),
+        fetch(API_BASE_URL + '/tables/shift_requests?limit=1000')
     ]);
     
     const [usersResult, shiftsResult, requestsResult] = await Promise.all([
@@ -1003,12 +1003,21 @@ function generateRequestCalendar(year, month, requests) {
         html += `<div class="${classNames.join(' ')}">`;
         html += `<div class="day-number">${day}</div>`;
         
+        // シフトが多い場合はスクロール可能にする
+        if (dayRequests.length > 5) {
+            html += `<div style="max-height: 120px; overflow-y: auto; padding-right: 2px;">`;
+        }
+        
         if (dayRequests.length > 0) {
             dayRequests.forEach(req => {
                 const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
                 // 未承認シフトは黄色で表示
                 html += `<div class="shift-info request-pending" style="cursor: pointer;" onclick="openRequestDetail('${req.id}')">${req.user_name} ${timeSlot}</div>`;
             });
+        }
+        
+        if (dayRequests.length > 5) {
+            html += `</div>`;
         }
         
         html += '</div>';
@@ -1066,6 +1075,14 @@ function generateApprovedCalendar(year, month, approvedRequests, confirmedShifts
         html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !isWeekend ? `openGeneralQuickCreate('${dateStr}')` : ''}" style="${!hasData && !isWeekend ? 'cursor: pointer;' : ''}">`;
         html += `<div class="day-number">${day}</div>`;
         
+        // シフトが多い場合はスクロール可能にする
+        const shiftCount = dayApprovedRequests.length + dayConfirmedShifts.length;
+        const containerStyle = shiftCount > 5 ? 'max-height: 120px; overflow-y: auto; padding-right: 2px;' : '';
+        
+        if (shiftCount > 0) {
+            html += `<div style="${containerStyle}">`;
+        }
+        
         // 承認済み希望シフトを表示（緑色）
         if (dayApprovedRequests.length > 0) {
             dayApprovedRequests.forEach(req => {
@@ -1079,6 +1096,10 @@ function generateApprovedCalendar(year, month, approvedRequests, confirmedShifts
             dayConfirmedShifts.forEach(shift => {
                 html += `<div class="shift-info shift-confirmed" style="cursor: pointer;" onclick="event.stopPropagation(); window.openShiftEdit('${shift.id}')">${shift.user_name} ${shift.start_time}-${shift.end_time}</div>`;
             });
+        }
+        
+        if (shiftCount > 0) {
+            html += `</div>`;
         }
         
         html += '</div>';
@@ -1169,6 +1190,12 @@ function generateManagementCalendar(year, month, requests, shifts) {
         html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !isWeekend ? `openQuickCreateForDate('${dateStr}')` : ''}" style="${!hasData && !isWeekend ? 'cursor: pointer;' : ''}">`;
         html += `<div class="day-number">${day}</div>`;
         
+        // シフトが多い場合はスクロール可能にする
+        const shiftCount = dayRequests.length + dayShifts.length;
+        if (shiftCount > 5) {
+            html += `<div style="max-height: 120px; overflow-y: auto; padding-right: 2px;">`;
+        }
+        
         // 未承認シフト（黄色）を先に表示
         dayRequests.filter(req => req.status === 'pending').forEach(req => {
             const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
@@ -1185,6 +1212,10 @@ function generateManagementCalendar(year, month, requests, shifts) {
         dayShifts.forEach(shift => {
             html += `<div class="shift-info shift-confirmed" style="cursor: pointer;" onclick="event.stopPropagation(); openMgmtModal('shift', '${shift.id}')">${shift.start_time}-${shift.end_time}</div>`;
         });
+        
+        if (shiftCount > 5) {
+            html += `</div>`;
+        }
         
         html += '</div>';
     }
