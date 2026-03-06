@@ -26,7 +26,6 @@
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('management')">シフト管理</button>
                 <button class="tab" onclick="switchTab('requests')">希望シフト一覧</button>
-                <button class="tab" onclick="switchTab('shifts')">シフト作成</button>
                 <button class="tab" onclick="switchTab('summary')">稼働時間集計</button>
                 <button class="tab" onclick="switchTab('users')">ユーザー管理</button>
                 <button class="tab" onclick="switchTab('calendar')">カレンダー</button>
@@ -59,86 +58,16 @@
 
             <!-- 希望シフト一覧タブ -->
             <div id="requestsTab" class="tab-content">
+                <h3 style="margin-bottom: 15px; color: #333;">未承認の希望シフト一覧</h3>
                 <div class="filter-section">
                     <div class="form-group">
                         <label for="filterDate">日付でフィルター</label>
                         <input type="date" id="filterDate" class="form-control">
                     </div>
-                    <div class="form-group">
-                        <label for="filterStatus">ステータス</label>
-                        <select id="filterStatus" class="form-control">
-                            <option value="all">すべて</option>
-                            <option value="pending">未確認</option>
-                            <option value="approved">承認済み</option>
-                        </select>
-                    </div>
                     <button class="btn btn-secondary" onclick="loadShiftRequests()">更新</button>
                 </div>
 
                 <div id="requestsList"></div>
-            </div>
-
-            <!-- シフト管理タブ -->
-            <div id="shiftsTab" class="tab-content" style="display: none;">
-                <div class="shift-form">
-                    <h3>新しいシフトを作成</h3>
-                    <div class="form-group">
-                        <label for="shiftUser">スタッフ</label>
-                        <select id="shiftUser" class="form-control">
-                            <option value="">選択してください</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="shiftDate">勤務日</label>
-                        <input type="date" id="shiftDate" class="form-control">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="shiftStartTime">開始時刻</label>
-                            <div style="display: flex; gap: 5px;">
-                                <select id="shiftStartHour" class="form-control" style="width: 50%;">
-                                    <option value="">時</option>
-                                </select>
-                                <select id="shiftStartMin" class="form-control" style="width: 50%;">
-                                    <option value="">分</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="shiftEndTime">終了時刻</label>
-                            <div style="display: flex; gap: 5px;">
-                                <select id="shiftEndHour" class="form-control" style="width: 50%;">
-                                    <option value="">時</option>
-                                </select>
-                                <select id="shiftEndMin" class="form-control" style="width: 50%;">
-                                    <option value="">分</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="shiftStatus">ステータス</label>
-                        <select id="shiftStatus" class="form-control">
-                            <option value="approved">承認済みシフト</option>
-                            <option value="pending">未承認シフト</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="shiftNotes">備考・メモ（任意）</label>
-                        <textarea id="shiftNotes" class="form-control"></textarea>
-                    </div>
-                    <button class="btn btn-success" onclick="createShift()">シフトを作成</button>
-                </div>
-
-                <div class="filter-section">
-                    <div class="form-group">
-                        <label for="shiftFilterMonth">表示月</label>
-                        <input type="month" id="shiftFilterMonth" class="form-control">
-                    </div>
-                    <button class="btn btn-secondary" onclick="loadShifts()">更新</button>
-                </div>
-
-                <div id="shiftsList"></div>
             </div>
 
             <!-- 稼働時間集計タブ -->
