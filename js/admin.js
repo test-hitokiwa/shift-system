@@ -1106,9 +1106,15 @@ function calculateWeeklyTotals(year, month, requests, shifts) {
         }
     }
     
-    // 週ごとの合計表示（コンパクト版）
+    // 週ごとの合計表示（コンパクト版）+ 総合計
+    let totalRequestHours = 0;
+    let totalConfirmedHours = 0;
+    
     let html = '<div class="weekly-totals">';
     weeks.forEach((week, index) => {
+        totalRequestHours += week.requestHours;
+        totalConfirmedHours += week.confirmedHours;
+        
         html += `
             <div class="week-total-card">
                 <h4>第${index + 1}週 ${week.start}日-${week.end}日</h4>
@@ -1123,6 +1129,22 @@ function calculateWeeklyTotals(year, month, requests, shifts) {
             </div>
         `;
     });
+    
+    // 合計カードを追加
+    html += `
+        <div class="week-total-card" style="border: 3px solid #667eea; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <h4 style="color: white;">合計</h4>
+            <div class="week-total-item">
+                <span class="week-total-label" style="color: white;">未承認</span>
+                <span class="week-total-value request" style="color: white; font-size: 18px;">${totalRequestHours.toFixed(1)}h</span>
+            </div>
+            <div class="week-total-item">
+                <span class="week-total-label" style="color: white;">承認済み</span>
+                <span class="week-total-value confirmed" style="color: white; font-size: 18px;">${totalConfirmedHours.toFixed(1)}h</span>
+            </div>
+        </div>
+    `;
+    
     html += '</div>';
     
     document.getElementById('weeklyTotals').innerHTML = html;
@@ -2012,6 +2034,10 @@ function displayUserWeeklySummaries(userSummaries, year, month) {
         });
     }
     
+    // 全体の総合計を計算
+    const grandTotalPending = totalWeeks.reduce((sum, week) => sum + week.pendingHours, 0);
+    const grandTotalApproved = totalWeeks.reduce((sum, week) => sum + week.approvedHours, 0);
+    
     let html = '';
     
     // 全体の合計を上部に表示
@@ -2041,6 +2067,25 @@ function displayUserWeeklySummaries(userSummaries, year, month) {
         `;
     });
     
+    // 全体の総合計カード
+    html += `
+        <div style="border: 3px solid white; border-radius: 8px; padding: 12px; background: rgba(255, 255, 255, 0.95);">
+            <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px; text-align: center; color: #667eea;">
+                合計
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #666; font-size: 12px;">未承認</span>
+                    <span style="color: #ff9800; font-weight: bold; font-size: 15px;">${grandTotalPending.toFixed(1)}h</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #666; font-size: 12px;">承認済み</span>
+                    <span style="color: #28a745; font-weight: bold; font-size: 15px;">${grandTotalApproved.toFixed(1)}h</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
     html += `
             </div>
         </div>
@@ -2048,6 +2093,10 @@ function displayUserWeeklySummaries(userSummaries, year, month) {
     
     // 各ユーザーの週次集計を表示
     userSummaries.forEach(userSummary => {
+        // ユーザーごとの総合計を計算
+        const userTotalPending = userSummary.weeks.reduce((sum, week) => sum + week.pendingHours, 0);
+        const userTotalApproved = userSummary.weeks.reduce((sum, week) => sum + week.approvedHours, 0);
+        
         html += `
             <div style="margin-bottom: 30px; border: 1px solid #ddd; border-radius: 8px; padding: 20px; background: #f9f9f9;">
                 <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #333;">${userSummary.userName}</h3>
@@ -2074,6 +2123,25 @@ function displayUserWeeklySummaries(userSummaries, year, month) {
             `;
         });
         
+        // ユーザーごとの合計カード
+        html += `
+            <div style="border: 3px solid #667eea; border-radius: 8px; padding: 12px; background: white;">
+                <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px; text-align: center; color: #667eea;">
+                    合計
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #666; font-size: 12px;">未承認</span>
+                        <span style="color: #ff9800; font-weight: bold; font-size: 15px;">${userTotalPending.toFixed(1)}h</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #666; font-size: 12px;">承認済み</span>
+                        <span style="color: ${userTotalApproved < 10 ? '#dc3545' : '#28a745'}; font-weight: bold; font-size: 15px;">${userTotalApproved.toFixed(1)}h</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
         html += `
                 </div>
             </div>
@@ -2082,4 +2150,5 @@ function displayUserWeeklySummaries(userSummaries, year, month) {
     
     container.innerHTML = html;
 }
+
 
