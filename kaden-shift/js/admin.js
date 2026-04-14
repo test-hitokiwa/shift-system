@@ -1703,17 +1703,18 @@ function switchTab(tabName) {
         'requests': 1,
         'shifts': 2,
         'users': 3,
-        'calendar': 4
+        'totals': 4,
+        'calendar': 5
     };
     tabs[tabMap[tabName]].classList.add('active');
-    
+
     // タブコンテンツの表示を切り替え
     document.getElementById('managementTab').style.display = tabName === 'management' ? 'block' : 'none';
     document.getElementById('requestsTab').style.display = tabName === 'requests' ? 'block' : 'none';
     document.getElementById('shiftsTab').style.display = tabName === 'shifts' ? 'block' : 'none';
     document.getElementById('usersTab').style.display = tabName === 'users' ? 'block' : 'none';
+    document.getElementById('totalsTab').style.display = tabName === 'totals' ? 'block' : 'none';
     document.getElementById('calendarTab').style.display = tabName === 'calendar' ? 'block' : 'none';
-
 }
 
 // 日付フォーマット

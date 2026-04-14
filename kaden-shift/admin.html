@@ -28,6 +28,7 @@
                 <button class="tab" onclick="switchTab('requests')">希望シフト一覧</button>
                 <button class="tab" onclick="switchTab('shifts')">シフト作成</button>
                 <button class="tab" onclick="switchTab('users')">ユーザー管理</button>
+                <button class="tab" onclick="switchTab('totals')">稼働時間集計</button>
                 <button class="tab" onclick="switchTab('calendar')">カレンダー</button>
             </div>
 
@@ -51,29 +52,6 @@
 
                 <!-- 週ごとの合計時間 -->
                 <div id="weeklyTotals" style="margin-bottom: 20px;"></div>
-
-                <!-- 期間集計 -->
-                <div class="period-totals-section">
-                    <h3 style="margin-bottom: 12px; color: #333;">稼働時間集計</h3>
-                    <div class="filter-row">
-                        <div class="form-group">
-                            <label for="periodStart">開始日</label>
-                            <input type="date" id="periodStart" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="periodEnd">終了日</label>
-                            <input type="date" id="periodEnd" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="periodStaff">スタッフ</label>
-                            <select id="periodStaff" class="form-control">
-                                <option value="all">全スタッフ</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button class="btn btn-primary" onclick="calculatePeriodTotals()">集計</button>
-                    <div id="periodTotalsResult" style="margin-top: 16px;"></div>
-                </div>
 
                 <!-- シフト管理カレンダー -->
                 <div id="managementCalendarView"></div>
@@ -167,6 +145,31 @@
             <div id="usersTab" class="tab-content" style="display: none;">
                 <button class="btn btn-primary" style="margin-bottom: 20px;" onclick="openAddUserModal()">新しいユーザーを追加</button>
                 <div id="usersList"></div>
+            </div>
+
+            <!-- 稼働時間集計タブ -->
+            <div id="totalsTab" class="tab-content" style="display: none;">
+                <div class="period-totals-section">
+                    <h3 style="margin-bottom: 12px; color: #333;">稼働時間集計</h3>
+                    <div class="filter-row">
+                        <div class="form-group">
+                            <label for="periodStart">開始日</label>
+                            <input type="date" id="periodStart" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="periodEnd">終了日</label>
+                            <input type="date" id="periodEnd" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="periodStaff">スタッフ</label>
+                            <select id="periodStaff" class="form-control">
+                                <option value="all">全スタッフ</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="calculatePeriodTotals()">集計</button>
+                    <div id="periodTotalsResult" style="margin-top: 16px;"></div>
+                </div>
             </div>
 
             <!-- カレンダータブ -->
