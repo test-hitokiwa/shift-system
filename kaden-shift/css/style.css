@@ -143,6 +143,7 @@ textarea.form-control {
     cursor: pointer;
     transition: all 0.3s;
     margin-bottom: 10px;
+    min-height: 44px;
 }
 
 .btn-primary {
@@ -186,6 +187,7 @@ textarea.form-control {
     width: auto;
     padding: 8px 16px;
     font-size: 14px;
+    min-height: 44px;
 }
 
 /* 情報ボックス */
@@ -229,14 +231,16 @@ textarea.form-control {
 
 .tab {
     flex: 1;
-    padding: 12px;
+    padding: 12px 8px;
     background: #f8f9fa;
     border: none;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     transition: all 0.3s;
     color: #6c757d;
+    white-space: nowrap;
+    min-height: 44px;
 }
 
 .tab.active {
@@ -302,9 +306,9 @@ textarea.form-control {
 }
 
 .shift-status {
-    padding: 4px 12px;
+    padding: 6px 14px;
     border-radius: 12px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
 }
 
@@ -489,12 +493,30 @@ textarea.form-control {
         min-height: 100vh;
     }
 
+    header {
+        padding: 16px 15px;
+    }
+
     header h1 {
-        font-size: 24px;
+        font-size: 20px;
+        margin-bottom: 4px;
+    }
+
+    header .subtitle {
+        font-size: 12px;
     }
 
     main {
-        padding: 20px 15px;
+        padding: 16px 12px;
+    }
+
+    .tab {
+        font-size: 12px;
+        padding: 10px 4px;
+    }
+
+    .form-group {
+        margin-bottom: 14px;
     }
 
     .time-slots {
@@ -511,6 +533,25 @@ textarea.form-control {
 
     .day-name {
         font-size: 9px;
+    }
+
+    .shift-card {
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .request-card {
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .info-box {
+        padding: 14px;
+        margin-top: 16px;
+    }
+
+    .modal-content {
+        padding: 18px;
     }
 }
 
@@ -605,11 +646,11 @@ textarea.form-control {
 
 .modal-content {
     background: white;
-    padding: 30px;
+    padding: 24px;
     border-radius: 16px;
     max-width: 500px;
-    width: 90%;
-    max-height: 80vh;
+    width: 95%;
+    max-height: 90vh;
     overflow-y: auto;
 }
 
@@ -1003,6 +1044,14 @@ textarea.form-control {
 }
 
 @media (max-width: 768px) {
+    body.admin-page .container {
+        max-width: 100%;
+    }
+
+    body.admin-page main {
+        padding: 20px 16px;
+    }
+
     .calendar-day {
         min-height: 70px;
         padding: 6px;
@@ -1018,6 +1067,15 @@ textarea.form-control {
 
     .calendar-grid {
         gap: 6px;
+    }
+
+    .weekly-totals {
+        gap: 8px;
+    }
+
+    .week-total-card {
+        min-width: 120px;
+        padding: 8px 10px;
     }
 }
 

@@ -3,8 +3,24 @@
 // APIベースURL
 const API_BASE_URL = 'https://hito-kiwa.co.jp/api';
 
+// トースト通知を表示
+function showToast(message, type = 'success') {
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) existingToast.remove();
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
 let currentUser = null;
 let selectedDates = []; // 複数選択された日付を保持
+let tabLoaded = { request: true, confirmed: false, calendar: false };
 let currentDisplayYear = new Date().getFullYear();
 let currentDisplayMonth = new Date().getMonth() + 1;
 
@@ -44,11 +60,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 日付選択カレンダーを生成
     renderDateCalendar();
-    
-    // 初期データ読み込み
+
+    // 初期データ読み込み（希望シフト提出タブのみ）
     loadMyRequests();
-    loadConfirmedShifts();
-    loadCalendar();
 });
 
 // 時間選択ボックスを生成（9:30-18:00、30分刻み）
@@ -121,11 +135,7 @@ async function getCachedShiftData() {
     });
     
     cacheTimestamp = now;
-    
-    console.log('getCachedShiftData - ユーザーID:', currentUser.id);
-    console.log('getCachedShiftData - 全リクエスト:', requestsCache.length, requestsCache);
-    console.log('getCachedShiftData - 確定シフト（approved）:', shiftsCache.length, shiftsCache);
-    
+
     return { requests: requestsCache, shifts: shiftsCache };
 }
 
@@ -148,17 +158,12 @@ async function renderDateCalendar() {
         // キャッシュからデータを取得
         const { requests, shifts } = await getCachedShiftData();
         
-        console.log('renderDateCalendar - 月:', monthStr);
-        console.log('renderDateCalendar - 全リクエスト:', requests.length, requests);
-        console.log('renderDateCalendar - 全シフト:', shifts.length, shifts);
         
         // 該当月のみフィルター
         // pending のみ表示（approved は確定シフトとして表示されるため）
         const myRequests = requests.filter(r => r.date.startsWith(monthStr) && r.status === 'pending');
         const myShifts = shifts.filter(s => s.date.startsWith(monthStr));
         
-        console.log('renderDateCalendar - フィルター後リクエスト:', myRequests.length);
-        console.log('renderDateCalendar - フィルター後シフト:', myShifts.length);
         
         // 日付ごとにシフト情報をマッピング
         const requestsByDate = {};
@@ -344,7 +349,7 @@ async function submitRequest() {
     const notes = document.getElementById('requestNotes').value;
     
     if (selectedDates.length === 0) {
-        alert('希望日を選択してください');
+        showToast('希望日を選択してください', 'error');
         return;
     }
 
@@ -356,17 +361,17 @@ async function submitRequest() {
         return d < today;
     });
     if (pastDates.length > 0) {
-        alert('過去の日付にはシフトを提出できません。該当日付を解除してください。');
+        showToast('過去の日付にはシフトを提出できません', 'error');
         return;
     }
 
     if (!startTime || !endTime) {
-        alert('希望時間を選択してください');
+        showToast('希望時間を選択してください', 'error');
         return;
     }
     
     if (startTime >= endTime) {
-        alert('終了時刻は開始時刻より後にしてください');
+        showToast('終了時刻は開始時刻より後にしてください', 'error');
         return;
     }
     
@@ -401,7 +406,7 @@ async function submitRequest() {
         }
         
         if (successCount > 0) {
-            alert(`${successCount}件の希望シフトを提出しました！${failCount > 0 ? `\n（${failCount}件は失敗しました）` : ''}`);
+            showToast(`${successCount}件の希望シフトを提出しました${failCount > 0 ? `（${failCount}件失敗）` : ''}`, 'success');
             
             // キャッシュをクリア
             clearShiftCache();
@@ -419,7 +424,7 @@ async function submitRequest() {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('希望シフトの提出に失敗しました');
+        showToast('希望シフトの提出に失敗しました', 'error');
     }
 }
 
@@ -431,13 +436,10 @@ async function loadMyRequests() {
         // カレンダーで選択されている月を取得
         const selectedMonth = `${currentDisplayYear}-${currentDisplayMonth.toString().padStart(2, '0')}`;
         
-        console.log('loadMyRequests - 選択された月:', selectedMonth);
-        console.log('loadMyRequests - 全リクエスト:', requests.length);
         
         // 選択された月でフィルター（承認済みも含めて全て表示）
         const myRequests = requests.filter(req => req.date.startsWith(selectedMonth));
         
-        console.log('loadMyRequests - フィルター後:', myRequests.length);
         
         const container = document.getElementById('myRequests');
         
@@ -659,7 +661,7 @@ async function showShiftDetail(shiftId) {
         document.getElementById('shiftDetailModal').style.display = 'flex';
     } catch (error) {
         console.error('エラー:', error);
-        alert('シフト情報の読み込みに失敗しました');
+        showToast('シフト情報の読み込みに失敗しました', 'error');
     }
 }
 
@@ -690,7 +692,7 @@ async function showRequestDetail(requestId) {
         document.getElementById('shiftDetailModal').style.display = 'flex';
     } catch (error) {
         console.error('エラー:', error);
-        alert('希望シフト情報の読み込みに失敗しました');
+        showToast('読み込みに失敗しました', 'error');
     }
 }
 
@@ -718,12 +720,12 @@ async function saveStaffQuickCreate() {
     const notes = document.getElementById('staffQuickNotes').value;
     
     if (!startTime || !endTime) {
-        alert('時間を入力してください');
+        showToast('時間を入力してください', 'error');
         return;
     }
     
     if (startTime >= endTime) {
-        alert('終了時刻は開始時刻より後にしてください');
+        showToast('終了時刻は開始時刻より後にしてください', 'error');
         return;
     }
     
@@ -746,7 +748,7 @@ async function saveStaffQuickCreate() {
         });
         
         if (response.ok) {
-            alert('希望シフトを作成しました！');
+            showToast('希望シフトを作成しました', 'success');
             clearShiftCache();
             closeStaffQuickCreateModal();
             loadCalendar();
@@ -755,7 +757,7 @@ async function saveStaffQuickCreate() {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('希望シフトの作成に失敗しました');
+        showToast('希望シフトの作成に失敗しました', 'error');
     }
 }
 
@@ -767,7 +769,7 @@ async function openRequestEditModal(requestId) {
         
         // 未承認のみ編集可能
         if (request.status !== 'pending') {
-            alert('承認済みのシフトは編集できません');
+            showToast('承認済みのシフトは編集できません', 'error');
             return;
         }
         
@@ -819,7 +821,7 @@ async function openRequestEditModal(requestId) {
         document.getElementById('editRequestModal').style.display = 'flex';
     } catch (error) {
         console.error('エラー:', error);
-        alert('希望シフト情報の読み込みに失敗しました');
+        showToast('読み込みに失敗しました', 'error');
     }
 }
 
@@ -836,12 +838,12 @@ async function saveEditedRequest() {
     const notes = document.getElementById('editRequestNotes').value;
     
     if (!startTime || !endTime) {
-        alert('時間を選択してください');
+        showToast('時間を選択してください', 'error');
         return;
     }
     
     if (startTime >= endTime) {
-        alert('終了時刻は開始時刻より後にしてください');
+        showToast('終了時刻は開始時刻より後にしてください', 'error');
         return;
     }
     
@@ -860,7 +862,7 @@ async function saveEditedRequest() {
         });
         
         if (response.ok) {
-            alert('希望シフトを更新しました！');
+            showToast('希望シフトを更新しました', 'success');
             clearShiftCache();
             closeEditRequestModal();
             loadMyRequests();
@@ -871,7 +873,7 @@ async function saveEditedRequest() {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('希望シフトの更新に失敗しました: ' + error.message);
+        showToast('希望シフトの更新に失敗しました', 'error');
     }
 }
 
@@ -902,7 +904,7 @@ async function deleteRequestFromModal() {
         });
         
         if (response.ok || response.status === 204) {
-            alert('希望シフトを削除しました');
+            showToast('希望シフトを削除しました', 'success');
             clearShiftCache();
             closeEditRequestModal();
             loadMyRequests();
@@ -912,7 +914,7 @@ async function deleteRequestFromModal() {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('希望シフトの削除に失敗しました: ' + error.message);
+        showToast('希望シフトの削除に失敗しました', 'error');
     }
 }
 
@@ -936,7 +938,7 @@ async function deleteMyRequest(requestId) {
         });
         
         if (response.ok || response.status === 204) {
-            alert('希望シフトを削除しました');
+            showToast('希望シフトを削除しました', 'success');
             clearShiftCache();
             loadMyRequests();
             loadCalendar();
@@ -945,22 +947,32 @@ async function deleteMyRequest(requestId) {
         }
     } catch (error) {
         console.error('エラー:', error);
-        alert('希望シフトの削除に失敗しました');
+        showToast('希望シフトの削除に失敗しました', 'error');
     }
 }
 
-// タブ切り替え
+// タブ切り替え（遅延ロード対応）
 function switchTab(tabName) {
     // タブボタンのアクティブ状態を切り替え
     document.querySelectorAll('.tab').forEach(tab => {
         tab.classList.remove('active');
     });
     event.target.classList.add('active');
-    
+
     // タブコンテンツの表示を切り替え
     document.getElementById('requestTab').style.display = tabName === 'request' ? 'block' : 'none';
     document.getElementById('confirmedTab').style.display = tabName === 'confirmed' ? 'block' : 'none';
     document.getElementById('calendarTab').style.display = tabName === 'calendar' ? 'block' : 'none';
+
+    // 初回アクセス時のみデータをロード
+    if (tabName === 'confirmed' && !tabLoaded.confirmed) {
+        tabLoaded.confirmed = true;
+        loadConfirmedShifts();
+    }
+    if (tabName === 'calendar' && !tabLoaded.calendar) {
+        tabLoaded.calendar = true;
+        loadCalendar();
+    }
 }
 
 // 日付フォーマット

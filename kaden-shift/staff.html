@@ -47,18 +47,15 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>希期開始時刻</label>
-                    <select id="requestStartTime" class="form-control">
-                        <!-- JavaScriptで動的に生成 -->
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>希期終了時刻</label>
-                    <select id="requestEndTime" class="form-control">
-                        <!-- JavaScriptで動的に生成 -->
-                    </select>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>開始時刻</label>
+                        <select id="requestStartTime" class="form-control"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>終了時刻</label>
+                        <select id="requestEndTime" class="form-control"></select>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -66,7 +63,7 @@
                     <textarea id="requestNotes" class="form-control" placeholder="特記事項があれば入力してください"></textarea>
                 </div>
 
-                <button class="btn btn-primary" onclick="submitRequest()">選択した日付すべてに希望シフトを提出</button>
+                <button class="btn btn-primary" onclick="submitRequest()">シフトを提出</button>
 
                 <div class="info-box">
                     <h3>提出済みの希望シフト</h3>
