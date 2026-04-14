@@ -35,7 +35,6 @@ let currentUser = null;
 let allUsers = [];
 let allRequests = [];
 let allShifts = [];
-let adminTabLoaded = { management: true, requests: false, shifts: false, users: false, calendar: false };
 
 // データキャッシュ（無効化してリアルタイム更新）
 let usersCache = null;
@@ -77,9 +76,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 時間・分の選択肢を生成
     initializeAllHourMinOptions();
     
-    // 初期データ読み込み（loadUsersはセレクト初期化に必要なので先に実行）
+    // 初期データ読み込み（並列化）
     await loadUsers();
-    // シフト管理タブのデータのみ初期ロード（他タブは遅延ロード）
+    await Promise.all([
+        loadShiftRequests(),
+        loadShifts(),
+        loadUsersList(),
+        loadCalendar()
+    ]);
     
     // シフト管理タブの初期化
     const mgmtStaffSelect = document.getElementById('mgmtStaff');
@@ -1710,14 +1714,6 @@ function switchTab(tabName) {
     document.getElementById('usersTab').style.display = tabName === 'users' ? 'block' : 'none';
     document.getElementById('calendarTab').style.display = tabName === 'calendar' ? 'block' : 'none';
 
-    // 初回アクセス時のみデータをロード
-    if (!adminTabLoaded[tabName]) {
-        adminTabLoaded[tabName] = true;
-        if (tabName === 'requests') loadShiftRequests();
-        if (tabName === 'shifts') loadShifts();
-        if (tabName === 'users') loadUsersList();
-        if (tabName === 'calendar') { generateTimeOptions(); loadCalendar(); }
-    }
 }
 
 // 日付フォーマット
