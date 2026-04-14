@@ -1,0 +1,49 @@
+# シフト管理システム用 .htaccess
+
+# デフォルトのインデックスファイル
+DirectoryIndex index.html index.php
+
+# エラードキュメント
+ErrorDocument 404 /index.html
+
+# ファイルのMIMEタイプ設定
+<IfModule mod_mime.c>
+    AddType text/html .html
+    AddType text/css .css
+    AddType application/javascript .js
+    AddType application/json .json
+</IfModule>
+
+# CORS設定（API用）
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization"
+</IfModule>
+
+# ファイル一覧の無効化
+Options -Indexes
+
+# URL書き換え
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # HTTPSへのリダイレクト（本番環境のみ）
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    
+    # favicon.ico のエラーを無視
+    RewriteCond %{REQUEST_URI} ^/favicon\.ico$
+    RewriteRule .* - [L,R=204]
+</IfModule>
+
+# 文字コード設定
+AddDefaultCharset UTF-8
+
+# ファイルのキャッシュ設定
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/html "access plus 0 seconds"
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+</IfModule>

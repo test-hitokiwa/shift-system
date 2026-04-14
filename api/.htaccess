@@ -1,0 +1,16 @@
+RewriteEngine On
+RewriteBase /api/
+
+# CORSヘッダー
+Header always set Access-Control-Allow-Origin "*"
+Header always set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+Header always set Access-Control-Allow-Headers "Content-Type, Authorization"
+
+# OPTIONSリクエストの処理
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
+
+# URLリライト
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^tables/([^/]+)/?(.*)$ tables/$1.php?path=$2 [QSA,L]

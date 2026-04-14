@@ -1,0 +1,8 @@
+# kaden-shift.hito-kiwa.co.jp から hito-kiwa.co.jp/kaden-shift/ へリダイレクト
+# このファイルを /kaden-shift.hito-kiwa.co.jp/.htaccess として配置
+
+RewriteEngine On
+
+# サブドメインへのアクセスを全てメインドメインの /kaden-shift/ にリダイレクト
+RewriteCond %{HTTP_HOST} ^kaden-shift\.hito-kiwa\.co\.jp$ [NC]
+RewriteRule ^(.*)$ https://hito-kiwa.co.jp/kaden-shift/$1 [R=301,L]

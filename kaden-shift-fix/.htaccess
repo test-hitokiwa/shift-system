@@ -1,0 +1,89 @@
+# シフト調整システム用 .htaccess（サブドメイン対応版）
+
+# エラーハンドリング
+php_flag display_errors Off
+php_flag log_errors On
+
+# デフォルトのインデックスファイル（優先順位順）
+DirectoryIndex index.php index.html index.htm
+
+# MIMEタイプの設定
+<IfModule mod_mime.c>
+    AddType text/html .html .htm
+    AddType text/css .css
+    AddType application/javascript .js
+    AddType application/json .json
+    AddType image/x-icon .ico
+</IfModule>
+
+# CORS設定（API連携用）
+<IfModule mod_headers.c>
+    # すべてのオリジンからのアクセスを許可
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    Header set Access-Control-Max-Age "3600"
+</IfModule>
+
+# OPTIONSリクエストの処理（プリフライトリクエスト）
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # OPTIONSリクエストに200を返す
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^(.*)$ $1 [R=200,L]
+    
+    # favicon.ico のエラーを無視
+    RewriteCond %{REQUEST_URI} ^/favicon\.ico$
+    RewriteRule .* - [L,R=204]
+    
+    # ディレクトリへのアクセスを index.php にリダイレクト
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} /$
+    RewriteRule ^(.*)$ index.php [L]
+</IfModule>
+
+# ファイル一覧の無効化（セキュリティ）
+Options -Indexes
+
+# 文字コード設定
+AddDefaultCharset UTF-8
+
+# キャッシュ設定
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # HTML は毎回最新を取得
+    ExpiresByType text/html "access plus 0 seconds"
+    
+    # CSS/JS は1週間キャッシュ
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    
+    # 画像は1ヶ月キャッシュ
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+    ExpiresByType image/x-icon "access plus 1 month"
+</IfModule>
+
+# gzip圧縮（高速化）
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/json
+</IfModule>
+
+# セキュリティヘッダー
+<IfModule mod_headers.c>
+    # XSS対策
+    Header set X-XSS-Protection "1; mode=block"
+    
+    # クリックジャッキング対策
+    Header set X-Frame-Options "SAMEORIGIN"
+    
+    # Content-Type スニッフィング対策
+    Header set X-Content-Type-Options "nosniff"
+    
+    # Referrer制御
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
