@@ -1588,8 +1588,12 @@ async function saveMgmtShift() {
         }
         
         showToast('保存しました', 'success');
+        clearCache();
         closeMgmtModal();
         loadManagementCalendar();
+        loadCalendar();
+        loadShiftRequests();
+        loadShifts();
     } catch (error) {
         console.error('エラー:', error);
         showToast('保存に失敗しました', 'error');
@@ -1615,6 +1619,7 @@ async function approveMgmtRequest() {
         clearCache();
         closeMgmtModal();
         loadManagementCalendar();
+        loadCalendar();
         loadShiftRequests();
     } catch (error) {
         console.error('エラー:', error);
@@ -1642,6 +1647,7 @@ async function unapproveMgmtRequest() {
             clearCache();
             closeMgmtModal();
             loadManagementCalendar();
+            loadCalendar();
             loadShiftRequests();
         } else {
             throw new Error('承認取り消しに失敗しました');
@@ -1678,6 +1684,7 @@ async function deleteMgmtItem() {
             clearCache();
             closeMgmtModal();
             loadManagementCalendar();
+            loadCalendar();
             loadShiftRequests();
             loadShifts();
         } else {
@@ -1813,9 +1820,11 @@ async function saveShiftEdit() {
         
         if (response.ok) {
             showToast('シフトを更新しました', 'success');
+            clearCache();
             closeShiftEditModal();
             loadShifts();
             loadCalendar();
+            loadManagementCalendar();
         } else {
             const error = await response.json();
             throw new Error(error.error || '更新に失敗しました');
@@ -1849,9 +1858,11 @@ async function deleteShiftFromModal() {
         
         if (response.ok || response.status === 204) {
             showToast('シフトを削除しました', 'success');
+            clearCache();
             closeShiftEditModal();
             loadShifts();
             loadCalendar();
+            loadManagementCalendar();
         } else {
             throw new Error('削除に失敗しました');
         }
@@ -1861,12 +1872,9 @@ async function deleteShiftFromModal() {
     }
 }
 
-// 希望シフト詳細を開く（未承認・承認済み両方）
+// 希望シフト詳細を開く（未承認・承認済み両方）→ 編集/削除可能な管理モーダルを使用
 function openRequestDetail(requestId) {
-    const request = allRequests.find(r => r.id === requestId);
-    if (!request) return;
-    
-    alert(`希望シフト詳細\n\nスタッフ: ${request.user_name}\n日付: ${request.date}\n時間: ${request.time_slots.join(', ')}\nステータス: ${request.status === 'approved' ? '承認済み' : '未承認'}\n備考: ${request.notes || 'なし'}`);
+    openMgmtModal('request', requestId);
 }
 
 // カレンダータブから空白日クリック
