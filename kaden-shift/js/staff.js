@@ -108,7 +108,7 @@ async function getCachedShiftData() {
     }
     
     // キャッシュが無効な場合は新規取得
-    const requestsResponse = await fetch(API_BASE_URL + '/tables/shift_requests?limit=100');
+    const requestsResponse = await fetch(API_BASE_URL + '/tables/shift_requests?limit=10000');
     const requestsResult = await requestsResponse.json();
     
     // 自分のデータのみフィルターしてキャッシュ

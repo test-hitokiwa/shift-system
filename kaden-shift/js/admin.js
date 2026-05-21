@@ -220,8 +220,8 @@ async function getCachedData() {
     // キャッシュが無効な場合は新規取得
     const [usersResponse, shiftsResponse, requestsResponse] = await Promise.all([
         fetch(API_BASE_URL + '/tables/users'),
-        fetch(API_BASE_URL + '/tables/shifts?limit=100'),
-        fetch(API_BASE_URL + '/tables/shift_requests?limit=100')
+        fetch(API_BASE_URL + '/tables/shifts?limit=10000'),
+        fetch(API_BASE_URL + '/tables/shift_requests?limit=10000')
     ]);
     
     const [usersResult, shiftsResult, requestsResult] = await Promise.all([
