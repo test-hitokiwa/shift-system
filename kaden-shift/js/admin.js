@@ -65,13 +65,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // 今月を設定
     const thisMonth = new Date().toISOString().slice(0, 7);
-    document.getElementById('shiftFilterMonth').value = thisMonth;
+    const shiftFilterMonthEl = document.getElementById('shiftFilterMonth');
+    if (shiftFilterMonthEl) shiftFilterMonthEl.value = thisMonth;
     document.getElementById('calendarMonth').value = thisMonth;
     document.getElementById('mgmtMonth').value = thisMonth;
-    
-    // 今日の日付を設定
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('shiftDate').value = today;
+
+    // シフト未提出者タブ: デフォルト期間（今月前半）
+    setUnsubmittedPreset('this-first', false);
     
     // 時間・分の選択肢を生成
     initializeAllHourMinOptions();
@@ -258,18 +258,19 @@ async function loadUsers() {
         
         allUsers = usersData;
         
-        // スタッフのみをセレクトボックスに追加
+        // スタッフのみをセレクトボックスに追加（シフト作成タブが残っている場合のみ）
         const staffUsers = allUsers.filter(user => user.role === 'staff');
         const select = document.getElementById('shiftUser');
-        select.innerHTML = '<option value="">選択してください</option>';
-        
-        staffUsers.forEach(user => {
-            const option = document.createElement('option');
-            option.value = user.id;
-            option.textContent = user.name;
-            option.dataset.name = user.name;
-            select.appendChild(option);
-        });
+        if (select) {
+            select.innerHTML = '<option value="">選択してください</option>';
+            staffUsers.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.name;
+                option.dataset.name = user.name;
+                select.appendChild(option);
+            });
+        }
     } catch (error) {
         console.error('ユーザー読み込みエラー:', error);
     }
@@ -590,23 +591,29 @@ async function createShift() {
     }
 }
 
-// シフト一覧を読み込む
+// シフト一覧を読み込む（UI 要素が無ければデータ更新のみ）
 async function loadShifts() {
     try {
         const { shifts: shiftsData } = await getCachedData();
-        
+
         allShifts = shiftsData;
-        
+
+        // 表示UI が無い場合はキャッシュ更新だけで終了
+        const filterMonthEl = document.getElementById('shiftFilterMonth');
+        const listEl = document.getElementById('shiftsList');
+        if (!filterMonthEl || !listEl) return;
+
         // 選択された月でフィルター
-        const filterMonth = document.getElementById('shiftFilterMonth').value;
-        const filteredShifts = allShifts.filter(shift => 
+        const filterMonth = filterMonthEl.value;
+        const filteredShifts = allShifts.filter(shift =>
             shift.date.startsWith(filterMonth) && shift.is_confirmed
         );
-        
+
         displayShifts(filteredShifts);
     } catch (error) {
         console.error('エラー:', error);
-        document.getElementById('shiftsList').innerHTML = '<p style="color: #dc3545;">読み込みに失敗しました</p>';
+        const listEl = document.getElementById('shiftsList');
+        if (listEl) listEl.innerHTML = '<p style="color: #dc3545;">読み込みに失敗しました</p>';
     }
 }
 
@@ -1708,7 +1715,7 @@ function switchTab(tabName) {
     const tabMap = {
         'management': 0,
         'requests': 1,
-        'shifts': 2,
+        'unsubmitted': 2,
         'users': 3,
         'totals': 4,
         'calendar': 5
@@ -1718,7 +1725,7 @@ function switchTab(tabName) {
     // タブコンテンツの表示を切り替え
     document.getElementById('managementTab').style.display = tabName === 'management' ? 'block' : 'none';
     document.getElementById('requestsTab').style.display = tabName === 'requests' ? 'block' : 'none';
-    document.getElementById('shiftsTab').style.display = tabName === 'shifts' ? 'block' : 'none';
+    document.getElementById('unsubmittedTab').style.display = tabName === 'unsubmitted' ? 'block' : 'none';
     document.getElementById('usersTab').style.display = tabName === 'users' ? 'block' : 'none';
     document.getElementById('totalsTab').style.display = tabName === 'totals' ? 'block' : 'none';
     document.getElementById('calendarTab').style.display = tabName === 'calendar' ? 'block' : 'none';
@@ -1958,6 +1965,133 @@ async function saveGeneralQuickCreate() {
     } catch (error) {
         console.error('エラー:', error);
         showToast('作成に失敗しました', 'error');
+    }
+}
+
+// ===== シフト未提出者タブ =====
+
+// Date を YYYY-MM-DD 文字列に変換（ローカル時刻基準）
+function formatDateForInput(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+// プリセットで期間を設定（today/next の前半/後半）
+// type: 'this-first' | 'this-second' | 'next-first' | 'next-second'
+// autoSearch: true なら設定後すぐに検索を実行
+function setUnsubmittedPreset(type, autoSearch) {
+    const startEl = document.getElementById('unsubStart');
+    const endEl = document.getElementById('unsubEnd');
+    if (!startEl || !endEl) return;
+
+    const now = new Date();
+    let year = now.getFullYear();
+    let month = now.getMonth(); // 0-indexed
+    let half = 'first';
+
+    if (type === 'this-second') {
+        half = 'second';
+    } else if (type === 'next-first') {
+        month += 1;
+        if (month > 11) { month = 0; year += 1; }
+    } else if (type === 'next-second') {
+        month += 1;
+        if (month > 11) { month = 0; year += 1; }
+        half = 'second';
+    }
+
+    let startDate, endDate;
+    if (half === 'first') {
+        startDate = new Date(year, month, 1);
+        endDate = new Date(year, month, 15);
+    } else {
+        startDate = new Date(year, month, 16);
+        endDate = new Date(year, month + 1, 0); // 月末
+    }
+
+    startEl.value = formatDateForInput(startDate);
+    endEl.value = formatDateForInput(endDate);
+
+    if (autoSearch) {
+        loadUnsubmittedUsers();
+    }
+}
+
+// シフト未提出者を検索
+async function loadUnsubmittedUsers() {
+    const startEl = document.getElementById('unsubStart');
+    const endEl = document.getElementById('unsubEnd');
+    const container = document.getElementById('unsubmittedResult');
+    if (!startEl || !endEl || !container) return;
+
+    const startDate = startEl.value;
+    const endDate = endEl.value;
+
+    if (!startDate || !endDate) {
+        showToast('開始日と終了日を指定してください', 'error');
+        return;
+    }
+    if (startDate > endDate) {
+        showToast('開始日は終了日より前にしてください', 'error');
+        return;
+    }
+
+    container.innerHTML = '<p style="color: #6c757d;">検索中...</p>';
+
+    try {
+        const { users: usersData, requests: requestsData } = await getCachedData();
+
+        // 期間内に提出のあるユーザー ID の集合（pending / approved 問わず）
+        const submittedUserIds = new Set(
+            requestsData
+                .filter(r => r.date >= startDate && r.date <= endDate)
+                .map(r => r.user_id)
+        );
+
+        // 管理者以外のユーザーで提出が無い人を抽出
+        const staffUsers = usersData.filter(u => u.role !== 'admin');
+        const unsubmitted = staffUsers
+            .filter(u => !submittedUserIds.has(u.id))
+            .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+
+        const totalStaff = staffUsers.length;
+        const submittedCount = totalStaff - unsubmitted.length;
+
+        if (unsubmitted.length === 0) {
+            container.innerHTML = `
+                <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 16px; border-radius: 8px;">
+                    <div style="color: #155724; font-weight: 700; font-size: 16px;">✓ 全員提出済みです</div>
+                    <p style="color: #155724; font-size: 13px; margin-top: 6px; margin-bottom: 0;">
+                        ${startDate} 〜 ${endDate} の期間で、全スタッフ ${totalStaff} 名がシフトを提出しています。
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = `
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;">
+                <strong style="color: #856404; font-size: 15px;">未提出: ${unsubmitted.length}名</strong>
+                <span style="color: #6c757d; margin-left: 8px; font-size: 13px;">
+                    （提出済 ${submittedCount} / 全 ${totalStaff} 名 ・ 対象期間: ${startDate} 〜 ${endDate}）
+                </span>
+            </div>
+            <div>
+                ${unsubmitted.map(u => `
+                    <div class="shift-card" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 700; font-size: 15px;">${u.name || '（名前未設定）'}</div>
+                            ${u.phone ? `<div style="color: #6c757d; font-size: 13px; margin-top: 4px;">${u.phone}</div>` : ''}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (error) {
+        console.error('エラー:', error);
+        container.innerHTML = '<p style="color: #dc3545;">読み込みに失敗しました</p>';
     }
 }
 
