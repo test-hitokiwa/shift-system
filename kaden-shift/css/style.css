@@ -838,12 +838,12 @@ textarea.form-control {
     font-weight: 700;
 }
 
-/* 欠勤シフト（取消線付き、半透明） */
+/* 欠勤シフト（薄紫＋取消線） */
 .shift-info.shift-absent {
     text-decoration: line-through !important;
-    opacity: 0.6 !important;
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
-    box-shadow: 0 2px 4px rgba(108, 117, 125, 0.4) !important;
+    background: linear-gradient(135deg, #b39ddb 0%, #9575cd 100%) !important;
+    color: white !important;
+    box-shadow: 0 2px 4px rgba(149, 117, 205, 0.4) !important;
 }
 
 /* 複数日付選択用カレンダー */
