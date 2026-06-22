@@ -88,15 +88,20 @@ try {
     $time_slots = isset($input['time_slots']) ? json_encode($input['time_slots']) : $existing['time_slots'];
     $status = $input['status'] ?? $existing['status'];
     $notes = $input['notes'] ?? $existing['notes'];
+    if (array_key_exists('is_absent', $input)) {
+        $is_absent = !empty($input['is_absent']) ? 1 : 0;
+    } else {
+        $is_absent = isset($existing['is_absent']) ? (int)$existing['is_absent'] : 0;
+    }
     $now = getCurrentTimestamp();
-    
+
     $stmt = $pdo->prepare("
-        UPDATE shift_requests 
-        SET user_id = ?, user_name = ?, date = ?, time_slots = ?, status = ?, notes = ?, updated_at = ?
+        UPDATE shift_requests
+        SET user_id = ?, user_name = ?, date = ?, time_slots = ?, status = ?, notes = ?, is_absent = ?, updated_at = ?
         WHERE id = ? AND deleted = 0
     ");
-    $stmt->execute([$user_id, $user_name, $date, $time_slots, $status, $notes, $now, $requestId]);
-    
+    $stmt->execute([$user_id, $user_name, $date, $time_slots, $status, $notes, $is_absent, $now, $requestId]);
+
     if ($stmt->rowCount() > 0) {
         echo json_encode([
             'id' => $requestId,
@@ -106,6 +111,7 @@ try {
             'time_slots' => json_decode($time_slots, true),
             'status' => $status,
             'notes' => $notes,
+            'is_absent' => (bool)$is_absent,
             'updated_at' => $now,
             'message' => '更新しました'
         ]);

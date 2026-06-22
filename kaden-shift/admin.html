@@ -289,6 +289,8 @@
                 <button class="btn btn-success" onclick="saveMgmtShift()">保存</button>
                 <button class="btn btn-primary" id="mgmtApproveBtn" onclick="approveMgmtRequest()" style="display: none;">承認</button>
                 <button class="btn btn-secondary" id="mgmtUnapproveBtn" onclick="unapproveMgmtRequest()" style="display: none;">承認取消</button>
+                <button class="btn" id="mgmtAbsentBtn" onclick="markAbsent()" style="display: none; background: #6c757d; color: white;">欠勤</button>
+                <button class="btn" id="mgmtUnabsentBtn" onclick="unmarkAbsent()" style="display: none; background: #17a2b8; color: white;">欠勤取消</button>
                 <button class="btn btn-danger" id="mgmtDeleteBtn" onclick="deleteMgmtItem()">削除</button>
                 <button class="btn btn-secondary" onclick="closeMgmtModal()">キャンセル</button>
             </div>

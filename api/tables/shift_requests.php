@@ -40,6 +40,7 @@ try {
                 $request['created_at'] = (int)$request['created_at'];
                 $request['updated_at'] = (int)$request['updated_at'];
                 $request['time_slots'] = json_decode($request['time_slots'], true);
+                $request['is_absent'] = isset($request['is_absent']) ? (bool)$request['is_absent'] : false;
                 echo json_encode($request);
             } else {
                 http_response_code(404);
@@ -62,6 +63,7 @@ try {
                 $request['created_at'] = (int)$request['created_at'];
                 $request['updated_at'] = (int)$request['updated_at'];
                 $request['time_slots'] = json_decode($request['time_slots'], true);
+                $request['is_absent'] = isset($request['is_absent']) ? (bool)$request['is_absent'] : false;
             }
             
             $countStmt = $pdo->query("SELECT COUNT(*) FROM shift_requests WHERE deleted = 0");
@@ -80,7 +82,7 @@ try {
     // POST: 希望シフト作成
     elseif ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
-        
+
         $id = generateUUID();
         $user_id = $input['user_id'] ?? '';
         $user_name = $input['user_name'] ?? '';
@@ -88,14 +90,15 @@ try {
         $time_slots = isset($input['time_slots']) ? json_encode($input['time_slots']) : '[]';
         $status = $input['status'] ?? 'pending';
         $notes = $input['notes'] ?? '';
+        $is_absent = !empty($input['is_absent']) ? 1 : 0;
         $now = getCurrentTimestamp();
-        
+
         $stmt = $pdo->prepare("
-            INSERT INTO shift_requests (id, user_id, user_name, date, time_slots, status, notes, created_at, updated_at, deleted)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+            INSERT INTO shift_requests (id, user_id, user_name, date, time_slots, status, notes, is_absent, created_at, updated_at, deleted)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
         ");
-        $stmt->execute([$id, $user_id, $user_name, $date, $time_slots, $status, $notes, $now, $now]);
-        
+        $stmt->execute([$id, $user_id, $user_name, $date, $time_slots, $status, $notes, $is_absent, $now, $now]);
+
         http_response_code(201);
         echo json_encode([
             'id' => $id,
@@ -105,6 +108,7 @@ try {
             'time_slots' => json_decode($time_slots, true),
             'status' => $status,
             'notes' => $notes,
+            'is_absent' => (bool)$is_absent,
             'created_at' => $now,
             'updated_at' => $now,
             'deleted' => false

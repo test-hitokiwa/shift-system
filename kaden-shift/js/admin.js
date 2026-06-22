@@ -1087,11 +1087,12 @@ function generateApprovedCalendar(year, month, approvedRequests, confirmedShifts
         html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !isWeekend ? `openGeneralQuickCreate('${dateStr}')` : ''}" style="${!hasData && !isWeekend ? 'cursor: pointer;' : ''}">`;
         html += `<div class="day-number">${day}</div>`;
         
-        // 承認済み希望シフトを表示（緑色）
+        // 承認済み希望シフトを表示（緑色、欠勤は取消線）
         if (dayApprovedRequests.length > 0) {
             dayApprovedRequests.forEach(req => {
                 const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
-                html += `<div class="shift-info shift-confirmed" style="cursor: pointer;" onclick="event.stopPropagation(); openRequestDetail('${req.id}')">${req.user_name} ${timeSlot}</div>`;
+                const absentClass = req.is_absent ? ' shift-absent' : '';
+                html += `<div class="shift-info shift-confirmed${absentClass}" style="cursor: pointer;" onclick="event.stopPropagation(); openRequestDetail('${req.id}')">${req.user_name} ${timeSlot}</div>`;
             });
         }
         
@@ -1196,10 +1197,12 @@ function generateManagementCalendar(year, month, requests, shifts) {
             html += `<div class="shift-info request-pending" style="cursor: pointer;" onclick="event.stopPropagation(); openMgmtModal('request', '${req.id}')">${timeSlot} (未)</div>`;
         });
         
-        // 承認済みシフト（緑）
+        // 承認済みシフト（緑、欠勤は取消線）
         dayRequests.filter(req => req.status === 'approved').forEach(req => {
             const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
-            html += `<div class="shift-info shift-confirmed" style="cursor: pointer;" onclick="event.stopPropagation(); openMgmtModal('request', '${req.id}')">${timeSlot} (承認)</div>`;
+            const absentClass = req.is_absent ? ' shift-absent' : '';
+            const label = req.is_absent ? '(欠勤)' : '(承認)';
+            html += `<div class="shift-info shift-confirmed${absentClass}" style="cursor: pointer;" onclick="event.stopPropagation(); openMgmtModal('request', '${req.id}')">${timeSlot} ${label}</div>`;
         });
         
         // 確定シフト（赤→緑に変更済み）
@@ -1334,7 +1337,7 @@ async function calculatePeriodTotals() {
 
         filteredRequests.forEach(req => {
             if (!totals[req.user_name]) {
-                totals[req.user_name] = { pending: 0, approved: 0 };
+                totals[req.user_name] = { pending: 0, approved: 0, absent: 0 };
             }
             if (req.time_slots && req.time_slots.length > 0) {
                 const [start, end] = req.time_slots[0].split('-');
@@ -1342,6 +1345,9 @@ async function calculatePeriodTotals() {
                     const hours = calculateHours(start, end);
                     if (req.status === 'approved') {
                         totals[req.user_name].approved += hours;
+                        if (req.is_absent) {
+                            totals[req.user_name].absent += hours;
+                        }
                     } else {
                         totals[req.user_name].pending += hours;
                     }
@@ -1349,10 +1355,10 @@ async function calculatePeriodTotals() {
             }
         });
 
-        // shifts テーブルのデータもカウント
+        // shifts テーブルのデータもカウント（現状未使用だが互換のため）
         filteredShifts.forEach(shift => {
             if (!totals[shift.user_name]) {
-                totals[shift.user_name] = { pending: 0, approved: 0 };
+                totals[shift.user_name] = { pending: 0, approved: 0, absent: 0 };
             }
             if (shift.start_time && shift.end_time) {
                 totals[shift.user_name].approved += calculateHours(shift.start_time, shift.end_time);
@@ -1371,29 +1377,36 @@ async function calculatePeriodTotals() {
         // 全体合計
         let totalPending = 0;
         let totalApproved = 0;
+        let totalAbsent = 0;
         entries.forEach(([, v]) => {
             totalPending += v.pending;
             totalApproved += v.approved;
+            totalAbsent += v.absent || 0;
         });
 
         let html = '<table class="period-totals-table">';
-        html += '<thead><tr><th>スタッフ</th><th>未承認</th><th>承認済み</th><th>合計</th></tr></thead>';
+        html += '<thead><tr><th>スタッフ</th><th>未承認</th><th>承認済み</th><th>合計</th><th>実出勤</th></tr></thead>';
         html += '<tbody>';
         entries.sort((a, b) => a[0].localeCompare(b[0]));
         entries.forEach(([name, v]) => {
+            const absent = v.absent || 0;
+            const actual = v.approved - absent;
             html += `<tr>
                 <td>${name}</td>
                 <td>${v.pending.toFixed(1)}h</td>
                 <td>${v.approved.toFixed(1)}h</td>
                 <td><strong>${(v.pending + v.approved).toFixed(1)}h</strong></td>
+                <td><strong>${actual.toFixed(1)}h</strong>${absent > 0 ? ` <span style="color: #dc3545; font-size: 11px;">(-${absent.toFixed(1)}h)</span>` : ''}</td>
             </tr>`;
         });
         if (entries.length > 1) {
+            const totalActual = totalApproved - totalAbsent;
             html += `<tr class="period-totals-total">
                 <td><strong>合計</strong></td>
                 <td><strong>${totalPending.toFixed(1)}h</strong></td>
                 <td><strong>${totalApproved.toFixed(1)}h</strong></td>
                 <td><strong>${(totalPending + totalApproved).toFixed(1)}h</strong></td>
+                <td><strong>${totalActual.toFixed(1)}h</strong>${totalAbsent > 0 ? ` <span style="color: #dc3545; font-size: 11px;">(-${totalAbsent.toFixed(1)}h)</span>` : ''}</td>
             </tr>`;
         }
         html += '</tbody></table>';
@@ -1423,11 +1436,12 @@ async function openMgmtModal(type, id) {
             setHourMin(end || '', 'mgmtEndHour', 'mgmtEndMin');
             document.getElementById('mgmtNotes').value = data.notes || '';
             
+            const isAbsent = !!data.is_absent;
             document.getElementById('mgmtShiftInfo').innerHTML = `
                 <p><strong>日付:</strong> ${data.date}</p>
-                <p><strong>ステータス:</strong> ${data.status === 'approved' ? '承認済み' : '未承認'}</p>
+                <p><strong>ステータス:</strong> ${data.status === 'approved' ? '承認済み' : '未承認'}${isAbsent ? ' <span style="color: #dc3545; font-weight: 700;">（欠勤）</span>' : ''}</p>
             `;
-            
+
             if (data.status === 'pending') {
                 document.getElementById('mgmtApproveBtn').style.display = 'inline-block';
                 document.getElementById('mgmtUnapproveBtn').style.display = 'none';
@@ -1435,7 +1449,18 @@ async function openMgmtModal(type, id) {
                 document.getElementById('mgmtApproveBtn').style.display = 'none';
                 document.getElementById('mgmtUnapproveBtn').style.display = 'inline-block';
             }
-            
+
+            // 欠勤ボタン: 承認済みシフトのみ表示。状態に応じて欠勤/欠勤取消を切り替え
+            const absentBtn = document.getElementById('mgmtAbsentBtn');
+            const unabsentBtn = document.getElementById('mgmtUnabsentBtn');
+            if (data.status === 'approved') {
+                absentBtn.style.display = isAbsent ? 'none' : 'inline-block';
+                unabsentBtn.style.display = isAbsent ? 'inline-block' : 'none';
+            } else {
+                absentBtn.style.display = 'none';
+                unabsentBtn.style.display = 'none';
+            }
+
             document.getElementById('mgmtDeleteBtn').style.display = 'inline-block';
         } else {
             const response = await fetch(`${API_BASE_URL}/tables/shifts/${id}`);
@@ -1456,7 +1481,9 @@ async function openMgmtModal(type, id) {
             
             document.getElementById('mgmtApproveBtn').style.display = 'none';
             document.getElementById('mgmtUnapproveBtn').style.display = 'none';
-            
+            document.getElementById('mgmtAbsentBtn').style.display = 'none';
+            document.getElementById('mgmtUnabsentBtn').style.display = 'none';
+
             document.getElementById('mgmtDeleteBtn').style.display = 'inline-block';
         }
         
@@ -1662,6 +1689,51 @@ async function unapproveMgmtRequest() {
     } catch (error) {
         console.error('エラー:', error);
         showToast('承認取消に失敗しました: ' + error.message, 'error');
+    }
+}
+
+// 欠勤マーク
+async function markAbsent() {
+    await toggleAbsent(true);
+}
+
+// 欠勤取消
+async function unmarkAbsent() {
+    await toggleAbsent(false);
+}
+
+// 欠勤フラグの ON/OFF（内部用）
+async function toggleAbsent(absent) {
+    const id = document.getElementById('mgmtItemId').value;
+    const action = absent ? '欠勤にする' : '欠勤を取消す';
+
+    if (!confirm(`このシフトを${action}してもよろしいですか？`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/tables/shift_requests_update.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: id,
+                is_absent: absent
+            })
+        });
+
+        if (response.ok) {
+            showToast(absent ? '欠勤にしました' : '欠勤を取消しました', 'success');
+            clearCache();
+            closeMgmtModal();
+            loadManagementCalendar();
+            loadCalendar();
+            loadShiftRequests();
+        } else {
+            throw new Error('更新に失敗しました');
+        }
+    } catch (error) {
+        console.error('エラー:', error);
+        showToast(`${action}のに失敗しました: ` + error.message, 'error');
     }
 }
 
