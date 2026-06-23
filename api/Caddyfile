@@ -44,14 +44,14 @@
     }
 
     # ===== クリーン URL を実 PHP に書き換え =====
-    # /tables/users → tables/users.php?path=
+    # /tables/users?limit=10000 → tables/users.php?path=&limit=10000
     # /tables/users/abc → tables/users.php?path=abc
-    # 実ファイルが存在する場合 (例: /tables/users.php) はそのまま処理
+    # 元のクエリ文字列を保持するため {query} を付ける
     @clean_url {
         not file
         path_regexp tables ^/tables/([^/]+)/?(.*)$
     }
-    rewrite @clean_url /tables/{re.tables.1}.php?path={re.tables.2}
+    rewrite @clean_url /tables/{re.tables.1}.php?path={re.tables.2}&{query}
 
     # PHP 実行
     php_server
