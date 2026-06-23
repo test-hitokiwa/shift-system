@@ -1,19 +1,6 @@
 <?php
-// ヘッダーが送信されていない場合のみCORS設定を適用
-if (!headers_sent()) {
-    // CORS設定（強化版）
-    header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-    header('Access-Control-Max-Age: 3600');
-    header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Expose-Headers: Content-Length, Content-Type');
-
-    // キャッシュ無効化（リアルタイム更新のため）
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Pragma: no-cache');
-    header('Expires: 0');
-}
+// CORS / Cache-Control ヘッダーは Caddyfile (Railway) または .htaccess (お名前.com) 側で設定する。
+// PHP 側で重複設定すると Allow-Origin が複数並んでブラウザに拒否されるため、ここでは何もしない。
 
 // Content-Type は各エンドポイントで設定
 // header('Content-Type: application/json; charset=utf-8');
