@@ -4,6 +4,9 @@ FROM php:8.2-apache
 # PDO MySQL ドライバ
 RUN docker-php-ext-install pdo pdo_mysql
 
+# mod_php (prefork のみ対応) との競合を避けるため、MPM は prefork のみに統一
+RUN a2dismod mpm_event mpm_worker 2>/dev/null || true && a2enmod mpm_prefork
+
 # .htaccess を効かせるための Apache モジュール
 RUN a2enmod rewrite headers
 
