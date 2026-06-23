@@ -2,8 +2,11 @@
 .DS_Store
 *.bak
 *.backup
+.htaccess
 .htaccess.backup
 ~.htaccess
 update_log.txt
 Dockerfile
+Caddyfile
 .dockerignore
+docker-entrypoint.sh
