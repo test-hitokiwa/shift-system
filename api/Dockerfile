@@ -1,11 +1,14 @@
 # Railway 用: PHP 8.2 + Apache + mod_rewrite
 FROM php:8.2-apache
 
+# MPM 競合回避: mods-enabled/ から全 MPM を削除し、prefork のみを有効化
+# (mod_php は prefork でないと動かないので、event/worker が並走するとクラッシュ)
+RUN rm -f /etc/apache2/mods-enabled/mpm_*.load /etc/apache2/mods-enabled/mpm_*.conf && \
+    ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load && \
+    ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf
+
 # PDO MySQL ドライバ
 RUN docker-php-ext-install pdo pdo_mysql
-
-# mod_php (prefork のみ対応) との競合を避けるため、MPM は prefork のみに統一
-RUN a2dismod mpm_event mpm_worker 2>/dev/null || true && a2enmod mpm_prefork
 
 # .htaccess を効かせるための Apache モジュール
 RUN a2enmod rewrite headers
