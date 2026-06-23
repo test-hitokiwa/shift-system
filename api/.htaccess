@@ -1,14 +1,20 @@
 RewriteEngine On
-RewriteBase /api/
+# RewriteBase は省略 → .htaccess のあるディレクトリが自動でベースになる
+# (お名前.com の /api/ でも Railway のルート / でも両方動く)
 
 # CORS設定
 <IfModule mod_headers.c>
-    Header always set Access-Control-Allow-Origin "*"
+    # 許可するオリジン（フロント Railway URL とカスタムドメイン）
+    SetEnvIf Origin "^https://(kaden-shift\.hito-kiwa\.co\.jp|shift-system-production-d9e8\.up\.railway\.app|[a-z0-9-]+\.up\.railway\.app)$" CORS_ALLOW_ORIGIN=$0
+    Header always set Access-Control-Allow-Origin "%{CORS_ALLOW_ORIGIN}e" env=CORS_ALLOW_ORIGIN
+    Header always set Vary "Origin"
+
     Header always set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
     Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
     Header always set Access-Control-Max-Age "3600"
     Header always set Access-Control-Allow-Credentials "true"
     Header always set Access-Control-Expose-Headers "Content-Length, Content-Type"
+
     Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
     Header always set Pragma "no-cache"
     Header always set Expires "0"
@@ -18,14 +24,14 @@ RewriteBase /api/
 RewriteCond %{REQUEST_METHOD} OPTIONS
 RewriteRule ^(.*)$ $1 [R=200,L]
 
-# PATCH メソッドを許可（お名前.comで必要）
+# PATCH メソッドを許可（お名前.comで必要だった対応、Railwayでも問題なし）
 <LimitExcept GET POST PUT PATCH DELETE OPTIONS>
     Deny from all
 </LimitExcept>
 
 # URLリライト：実ファイルが存在しないときだけ X.php に変換
-# /tables/users → /tables/users.php?path=
-# /tables/users/abc123 → /tables/users.php?path=abc123
+# /tables/users → tables/users.php?path=
+# /tables/users/abc123 → tables/users.php?path=abc123
 # /tables/users.php や _approve.php 等は実ファイルなのでスルー
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

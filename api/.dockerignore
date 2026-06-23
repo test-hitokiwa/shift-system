@@ -1,0 +1,9 @@
+.git
+.DS_Store
+*.bak
+*.backup
+.htaccess.backup
+~.htaccess
+update_log.txt
+Dockerfile
+.dockerignore

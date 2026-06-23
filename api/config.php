@@ -25,13 +25,15 @@ if (!headers_sent()) {
 // }
 
 // データベース接続情報
-$host = 'mysql1026.onamae.ne.jp';
-$dbname = '2b98y_shift_system';
-$username = '2b98y_shift';
-$password = 'Hitokiw@0053';
+// 環境変数があれば優先 (Railway 用)、なければ お名前.com の旧設定にフォールバック
+$host     = getenv('MYSQLHOST')     ?: 'mysql1026.onamae.ne.jp';
+$port     = getenv('MYSQLPORT')     ?: '3306';
+$dbname   = getenv('MYSQLDATABASE') ?: '2b98y_shift_system';
+$username = getenv('MYSQLUSER')     ?: '2b98y_shift';
+$password = getenv('MYSQLPASSWORD') ?: 'Hitokiw@0053';
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+    $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
