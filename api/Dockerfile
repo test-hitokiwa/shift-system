@@ -12,6 +12,7 @@ COPY Caddyfile /etc/caddy/Caddyfile
 COPY . /app/public/
 
 # Railway は PORT 環境変数を渡してくる
-ENV SERVER_NAME=:80
+# Caddyfile 側の :{$PORT:80} がそれを読むので SERVER_NAME は使わない
+ENV SERVER_NAME=
 
 EXPOSE 80
