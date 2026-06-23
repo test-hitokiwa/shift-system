@@ -1,7 +1,7 @@
 // スタッフページの処理
 
 // APIベースURL
-const API_BASE_URL = 'https://hito-kiwa.co.jp/api';
+const API_BASE_URL = 'https://thriving-surprise-production-c740.up.railway.app';
 
 // トースト通知を表示
 function showToast(message, type = 'success') {
