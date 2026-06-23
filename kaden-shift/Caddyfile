@@ -1,0 +1,17 @@
+# Railway 用 Caddy 設定
+# PORT 環境変数を Railway が動的に注入する
+:{$PORT:80} {
+    root * /usr/share/caddy
+    encode gzip
+    file_server
+
+    # SPA ではないので / アクセス時のみ index.html へ
+    @root path /
+    rewrite @root /index.html
+
+    # よくあるアクセスログを出力
+    log {
+        output stdout
+        format console
+    }
+}
