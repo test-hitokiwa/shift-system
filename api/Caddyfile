@@ -1,4 +1,8 @@
 {
+    # FrankenPHP の PHP 実行ハンドラを有効化（必須）
+    frankenphp
+    order php_server before file_server
+
     # Railway 内部、HTTPS 終端は不要
     auto_https off
     admin off

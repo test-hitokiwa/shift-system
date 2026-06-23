@@ -6,7 +6,8 @@ FROM dunglas/frankenphp:php8.2
 RUN install-php-extensions pdo pdo_mysql
 
 # Caddyfile (CORS / OPTIONS / クリーン URL 書き換え)
-COPY Caddyfile /etc/caddy/Caddyfile
+# FrankenPHP は /etc/frankenphp/Caddyfile を読みに行く
+COPY Caddyfile /etc/frankenphp/Caddyfile
 
 # API ファイル
 COPY . /app/public/
