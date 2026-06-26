@@ -955,8 +955,8 @@ textarea.form-control {
     line-height: 1.2;
     display: flex;
     align-items: center;
-    /* 日付と人数バッジは左に詰めて並べる。
-       space-between だとセル幅が狭いときバッジが右にはみ出して切れる */
+    /* justify-content は使わず、バッジ側の margin-left: auto で
+       「空きがあれば右に押す、無くなったら自動で左に詰める」を実現 */
     justify-content: flex-start;
     gap: 6px;
 }
@@ -975,6 +975,9 @@ textarea.form-control {
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
     white-space: nowrap;
+    /* 余りスペースをすべて吸って右端へ。空きが無くなれば auto は 0 になり
+       自動的に日付の右隣に詰まる (overflow しない) */
+    margin-left: auto;
 }
 
 .calendar-day.has-shift .day-number {
