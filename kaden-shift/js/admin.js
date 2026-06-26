@@ -743,7 +743,12 @@ async function loadUsersList() {
                     <span class="request-user">${user.name}${retiredBadge}</span>
                     <span>${user.role === 'admin' ? '管理者' : 'スタッフ'}</span>
                 </div>
-                <div style="margin: 8px 0;">パスワード: ${user.password}</div>
+                <div style="margin: 8px 0; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center;">
+                    <span>パスワード: ${user.password}</span>
+                    <span style="color: #6c757d; font-size: 13px;">
+                        入社日: ${user.hire_date ? user.hire_date : '<span style="color: #adb5bd;">未設定</span>'}
+                    </span>
+                </div>
                 <div class="request-actions">
                     <button class="btn btn-primary btn-small" onclick="window.editUser('${user.id}')">編集</button>
                     <button class="btn btn-danger btn-small" onclick="window.openRetirementModal('${user.id}', '${(user.name || '').replace(/'/g, "\\'")}', '${user.retirement_date || ''}')">${isRetired ? '退職日変更' : '退職'}</button>
