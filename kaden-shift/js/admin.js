@@ -1597,7 +1597,8 @@ async function calculatePeriodTotals() {
                     user_id: userId,
                     name: name,
                     branch: (userMap[userId] && userMap[userId].branch) || null,
-                    pending: 0, approved: 0, absent: 0
+                    pending: 0, approved: 0, absent: 0,
+                    workDates: new Set()   // 稼働した日付の集合 (重複なし)
                 };
             }
             return totals[userId];
@@ -1612,6 +1613,8 @@ async function calculatePeriodTotals() {
                     if (req.status === 'approved') {
                         t.approved += hours;
                         if (req.is_absent) t.absent += hours;
+                        // 欠勤でない承認シフトのみ稼働日にカウント
+                        if (!req.is_absent) t.workDates.add(req.date);
                     } else {
                         t.pending += hours;
                     }
@@ -1624,6 +1627,7 @@ async function calculatePeriodTotals() {
             if (shift.start_time && shift.end_time) {
                 t.approved += calculateHours(shift.start_time, shift.end_time);
             }
+            t.workDates.add(shift.date);
         });
 
         const container = document.getElementById('periodTotalsResult');
@@ -1647,11 +1651,12 @@ async function calculatePeriodTotals() {
         // 1 グループ分のテーブル HTML を組み立てる
         const buildTable = (groupKey, items) => {
             items.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
-            let totalPending = 0, totalApproved = 0, totalAbsent = 0;
+            let totalPending = 0, totalApproved = 0, totalAbsent = 0, totalDays = 0;
             items.forEach(v => {
                 totalPending += v.pending;
                 totalApproved += v.approved;
                 totalAbsent += v.absent || 0;
+                totalDays += v.workDates ? v.workDates.size : 0;
             });
 
             const heading = groupKey === '__main__'
@@ -1666,9 +1671,11 @@ async function calculatePeriodTotals() {
                 const safeName = (v.name || '').replace(/'/g, "\\'");
                 const btnLabel = v.branch || '—';
                 const btnClass = v.branch ? 'btn-branch-toggle assigned' : 'btn-branch-toggle';
+                const days = v.workDates ? v.workDates.size : 0;
+                const daysBadge = days > 0 ? `<span class="work-days-badge">${days}日</span>` : '';
                 table += `<tr>
                     <td><button type="button" class="btn ${btnClass}" onclick="window.openBranchModal('${v.user_id}', '${safeName}')" title="別営業を設定">${btnLabel}</button></td>
-                    <td>${v.name}</td>
+                    <td>${v.name}${daysBadge}</td>
                     <td>${v.pending.toFixed(1)}h</td>
                     <td>${v.approved.toFixed(1)}h</td>
                     <td><strong>${(v.pending + v.approved).toFixed(1)}h</strong></td>
@@ -1677,9 +1684,10 @@ async function calculatePeriodTotals() {
             });
             if (items.length > 1) {
                 const totalActual = totalApproved - totalAbsent;
+                const totalDaysBadge = totalDays > 0 ? `<span class="work-days-badge">延べ${totalDays}日</span>` : '';
                 table += `<tr class="period-totals-total">
                     <td></td>
-                    <td><strong>合計</strong></td>
+                    <td><strong>合計</strong>${totalDaysBadge}</td>
                     <td><strong>${totalPending.toFixed(1)}h</strong></td>
                     <td><strong>${totalApproved.toFixed(1)}h</strong></td>
                     <td><strong>${(totalPending + totalApproved).toFixed(1)}h</strong></td>

@@ -305,6 +305,16 @@ textarea.form-control {
     color: white;
 }
 
+/* スタッフ名の右に控えめに表示する稼働日数バッジ */
+.work-days-badge {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--slate-400);
+    font-variant-numeric: tabular-nums;
+}
+
 .btn-small {
     width: auto;
     padding: 8px 16px;
