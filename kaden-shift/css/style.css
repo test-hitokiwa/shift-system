@@ -955,9 +955,9 @@ textarea.form-control {
     line-height: 1.2;
     display: flex;
     align-items: center;
-    /* 日付の直後に 3em (= 3 文字分) のスペースを置いてバッジを配置 */
+    /* 日付の直後に 5em (= 5 文字分) のスペースを置いてバッジを配置 */
     justify-content: flex-start;
-    gap: 3em;
+    gap: 5em;
     overflow: hidden;
 }
 .day-number .day-num {
