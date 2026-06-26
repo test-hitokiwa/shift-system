@@ -73,20 +73,39 @@ try {
     // POST: ユーザー作成
     elseif ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
-        
+
         $id = generateUUID();
         $name = $input['name'] ?? '';
         $role = $input['role'] ?? 'staff';
         $phone = $input['phone'] ?? '';
         $password = $input['password'] ?? '';
+        $hireDate = array_key_exists('hire_date', $input) ? ($input['hire_date'] ?: null) : null;
         $now = getCurrentTimestamp();
-        
-        $stmt = $pdo->prepare("
-            INSERT INTO users (id, name, role, phone, password, created_at, updated_at, deleted)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-        ");
-        $stmt->execute([$id, $name, $role, $phone, $password, $now, $now]);
-        
+
+        // hire_date カラムを必要時に動的追加
+        $insertHireDate = false;
+        if ($hireDate !== null) {
+            $check = $pdo->query("SHOW COLUMNS FROM users LIKE 'hire_date'");
+            if (!$check || $check->rowCount() === 0) {
+                $pdo->exec("ALTER TABLE users ADD COLUMN hire_date DATE NULL");
+            }
+            $insertHireDate = true;
+        }
+
+        if ($insertHireDate) {
+            $stmt = $pdo->prepare("
+                INSERT INTO users (id, name, role, phone, password, hire_date, created_at, updated_at, deleted)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+            ");
+            $stmt->execute([$id, $name, $role, $phone, $password, $hireDate, $now, $now]);
+        } else {
+            $stmt = $pdo->prepare("
+                INSERT INTO users (id, name, role, phone, password, created_at, updated_at, deleted)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+            ");
+            $stmt->execute([$id, $name, $role, $phone, $password, $now, $now]);
+        }
+
         http_response_code(201);
         echo json_encode([
             'id' => $id,
@@ -94,6 +113,7 @@ try {
             'role' => $role,
             'phone' => $phone,
             'password' => $password,
+            'hire_date' => $hireDate,
             'created_at' => $now,
             'updated_at' => $now,
             'deleted' => false
@@ -183,6 +203,12 @@ try {
             $sets[] = 'branch = ?';
             $params[] = $branch;
         }
+        $hireDate = null;
+        if (array_key_exists('hire_date', $input)) {
+            $hireDate = $input['hire_date'] ?: null;
+            $sets[] = 'hire_date = ?';
+            $params[] = $hireDate;
+        }
 
         $params[] = $userId;
         $sql = "UPDATE users SET " . implode(', ', $sets) . " WHERE id = ?";
@@ -191,11 +217,12 @@ try {
         try {
             $stmt->execute($params);
         } catch (PDOException $e) {
-            // retirement_date / branch カラム不在による失敗なら、自動的に
-            // ALTER TABLE で追加してリトライする (= マイグレーション内蔵)
+            // retirement_date / branch / hire_date カラム不在による失敗なら、
+            // 自動的に ALTER TABLE で追加してリトライ (= マイグレーション内蔵)
             $msg = $e->getMessage();
             $isMissingColumn = strpos($msg, 'retirement_date') !== false
                             || strpos($msg, 'branch') !== false
+                            || strpos($msg, 'hire_date') !== false
                             || strpos($msg, 'Unknown column') !== false;
             if ($isMissingColumn) {
                 $altered = false;
@@ -207,6 +234,11 @@ try {
                 $check = $pdo->query("SHOW COLUMNS FROM users LIKE 'branch'");
                 if (!$check || $check->rowCount() === 0) {
                     $pdo->exec("ALTER TABLE users ADD COLUMN branch VARCHAR(1) NULL");
+                    $altered = true;
+                }
+                $check = $pdo->query("SHOW COLUMNS FROM users LIKE 'hire_date'");
+                if (!$check || $check->rowCount() === 0) {
+                    $pdo->exec("ALTER TABLE users ADD COLUMN hire_date DATE NULL");
                     $altered = true;
                 }
                 if ($altered) {
@@ -229,6 +261,7 @@ try {
             'password' => $password,
             'retirement_date' => $retirementDate,
             'branch' => $branch,
+            'hire_date' => $hireDate,
             'updated_at' => $now
         ]);
     }

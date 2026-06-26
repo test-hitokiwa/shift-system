@@ -33,6 +33,15 @@ try {
         echo "branch カラムを追加しました。\n";
     }
 
+    // hire_date
+    $check = $pdo->query("SHOW COLUMNS FROM users LIKE 'hire_date'");
+    if ($check && $check->rowCount() > 0) {
+        echo "hire_date カラムは既に存在します。\n";
+    } else {
+        $pdo->exec("ALTER TABLE users ADD COLUMN hire_date DATE NULL");
+        echo "hire_date カラムを追加しました。\n";
+    }
+
     echo "完了\n";
 } catch (Exception $e) {
     http_response_code(500);

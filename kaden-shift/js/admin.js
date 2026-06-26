@@ -766,6 +766,7 @@ function openAddUserModal() {
     document.getElementById('modalUserName').value = '';
     document.getElementById('modalUserRole').value = 'staff';
     document.getElementById('modalUserPassword').value = '';
+    document.getElementById('modalUserHireDate').value = '';
     document.getElementById('userEditModal').style.display = 'flex';
 }
 
@@ -774,13 +775,14 @@ window.editUser = async function(userId) {
     try {
         const response = await fetch(`${API_BASE_URL}/tables/users/${userId}`);
         const user = await response.json();
-        
+
         document.getElementById('userModalTitle').textContent = 'ユーザー編集';
         document.getElementById('modalUserId').value = user.id;
         document.getElementById('modalUserName').value = user.name;
         document.getElementById('modalUserRole').value = user.role;
         document.getElementById('modalUserPassword').value = user.password;
-        
+        document.getElementById('modalUserHireDate').value = user.hire_date || '';
+
         document.getElementById('userEditModal').style.display = 'flex';
     } catch (error) {
         console.error('エラー:', error);
@@ -799,35 +801,37 @@ async function saveUserFromModal() {
     const name = document.getElementById('modalUserName').value;
     const role = document.getElementById('modalUserRole').value;
     const password = document.getElementById('modalUserPassword').value;
-    
+    const hireDate = document.getElementById('modalUserHireDate').value || null;
+
     if (!name || !password) {
         showToast('すべての項目を入力してください', 'error');
         return;
     }
-    
+
     try {
         const userData = {
             name: name,
             role: role,
-            password: password
+            password: password,
+            hire_date: hireDate
         };
-        
+
         let response;
         if (userId) {
-            // 更新（POST で）
-            response = await fetch(`${API_BASE_URL}/tables/users_update.php`, {
-                method: 'POST',
+            // 更新 (PATCH 使用 — hire_date 含む任意フィールドが渡せる)
+            response = await fetch(`${API_BASE_URL}/tables/users/${userId}`, {
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    id: userId,
                     name: name,
                     role: role,
-                    password: password
+                    password: password,
+                    hire_date: hireDate
                 })
             });
-            
+
             // ユーザー名が変更された場合、関連するシフトと希望シフトも更新
             if (response.ok) {
                 await updateUserNameInShifts(userId, name);
@@ -2413,11 +2417,13 @@ async function loadUnsubmittedUsers() {
                 .map(r => r.user_id)
         );
 
-        // 管理者以外、かつ退職していないユーザーで提出が無い人を抽出
-        // 退職日が期間開始日より前 (= 期間中はすでに退職済) の人は除外
+        // 管理者以外、かつ「退職前」「入社後」のユーザーで提出が無い人を抽出
+        // - 退職日が期間開始日より前 (= 期間中はすでに退職済) の人は除外
+        // - 入社日が期間終了日より後 (= 期間中はまだ入社前) の人は除外
         const staffUsers = usersData.filter(u =>
             u.role !== 'admin' &&
-            !(u.retirement_date && u.retirement_date < startDate)
+            !(u.retirement_date && u.retirement_date < startDate) &&
+            !(u.hire_date && u.hire_date > endDate)
         );
         const unsubmitted = staffUsers
             .filter(u => !submittedUserIds.has(u.id))
