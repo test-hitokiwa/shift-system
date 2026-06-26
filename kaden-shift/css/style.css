@@ -955,7 +955,9 @@ textarea.form-control {
     line-height: 1.2;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    /* 日付と人数バッジは左に詰めて並べる。
+       space-between だとセル幅が狭いときバッジが右にはみ出して切れる */
+    justify-content: flex-start;
     gap: 6px;
 }
 .day-number .day-num {
@@ -971,6 +973,8 @@ textarea.form-control {
     border: 1px solid var(--indigo-100);
     line-height: 1.4;
     font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .calendar-day.has-shift .day-number {
