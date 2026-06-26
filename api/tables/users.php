@@ -191,13 +191,34 @@ try {
         try {
             $stmt->execute($params);
         } catch (PDOException $e) {
-            // カラム未追加の場合は migration を促すエラーメッセージ
-            if (strpos($e->getMessage(), 'retirement_date') !== false || strpos($e->getMessage(), 'branch') !== false) {
-                http_response_code(500);
-                echo json_encode(['error' => 'マイグレーション未実行: /migrate_add_retirement_branch.php を一度ブラウザで開いてください']);
-                exit();
+            // retirement_date / branch カラム不在による失敗なら、自動的に
+            // ALTER TABLE で追加してリトライする (= マイグレーション内蔵)
+            $msg = $e->getMessage();
+            $isMissingColumn = strpos($msg, 'retirement_date') !== false
+                            || strpos($msg, 'branch') !== false
+                            || strpos($msg, 'Unknown column') !== false;
+            if ($isMissingColumn) {
+                $altered = false;
+                $check = $pdo->query("SHOW COLUMNS FROM users LIKE 'retirement_date'");
+                if (!$check || $check->rowCount() === 0) {
+                    $pdo->exec("ALTER TABLE users ADD COLUMN retirement_date DATE NULL");
+                    $altered = true;
+                }
+                $check = $pdo->query("SHOW COLUMNS FROM users LIKE 'branch'");
+                if (!$check || $check->rowCount() === 0) {
+                    $pdo->exec("ALTER TABLE users ADD COLUMN branch VARCHAR(1) NULL");
+                    $altered = true;
+                }
+                if ($altered) {
+                    // カラム追加後、prepare し直してリトライ
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute($params);
+                } else {
+                    throw $e;
+                }
+            } else {
+                throw $e;
             }
-            throw $e;
         }
 
         echo json_encode([
