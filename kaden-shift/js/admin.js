@@ -985,6 +985,28 @@ async function loadCalendar() {
     }
 }
 
+// 同じユーザーの複数シフト（中抜けなど）を 1 行にまとめるためのヘルパー
+// items: シフト配列、getStart: 開始時刻を取り出す関数
+function groupShiftsByUser(items, getStart) {
+    const groups = new Map();
+    items.forEach(item => {
+        const key = item.user_id || item.user_name || 'unknown';
+        if (!groups.has(key)) {
+            groups.set(key, { user_id: item.user_id, user_name: item.user_name || '', items: [] });
+        }
+        groups.get(key).items.push(item);
+    });
+    groups.forEach(g => g.items.sort((a, b) => (getStart(a) || '').localeCompare(getStart(b) || '')));
+    return Array.from(groups.values());
+}
+
+// time_slots[0] から開始時刻 (HH:MM) を取り出す
+function getRequestStart(req) {
+    if (!req.time_slots || req.time_slots.length === 0) return '';
+    const slot = req.time_slots[0];
+    return slot.split('-')[0] || '';
+}
+
 // 未承認希望シフトのカレンダー生成
 function generateRequestCalendar(year, month, requests) {
     const firstDay = new Date(year, month - 1, 1);
@@ -1025,10 +1047,14 @@ function generateRequestCalendar(year, month, requests) {
         html += `<div class="day-number">${day}</div>`;
         
         if (dayRequests.length > 0) {
-            dayRequests.forEach(req => {
-                const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
-                // 未承認シフトは黄色で表示
-                html += `<div class="shift-info request-pending" style="cursor: pointer;" onclick="openRequestDetail('${req.id}')">${req.user_name} ${timeSlot}</div>`;
+            // 同じユーザーの中抜けシフトを 1 行にまとめる（未承認は黄色）
+            const userGroups = groupShiftsByUser(dayRequests, getRequestStart);
+            userGroups.forEach(group => {
+                const chips = group.items.map(req => {
+                    const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
+                    return `<span class="shift-time-chip" onclick="event.stopPropagation(); openRequestDetail('${req.id}')">${timeSlot}</span>`;
+                }).join(', ');
+                html += `<div class="shift-info request-pending">${group.user_name} ${chips}</div>`;
             });
         }
         
@@ -1087,19 +1113,29 @@ function generateApprovedCalendar(year, month, approvedRequests, confirmedShifts
         html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !isWeekend ? `openGeneralQuickCreate('${dateStr}')` : ''}" style="${!hasData && !isWeekend ? 'cursor: pointer;' : ''}">`;
         html += `<div class="day-number">${day}</div>`;
         
-        // 承認済み希望シフトを表示（緑色、欠勤は取消線）
+        // 承認済み希望シフトを表示（緑色、欠勤は取消線）- 同じユーザーは1行にまとめる
         if (dayApprovedRequests.length > 0) {
-            dayApprovedRequests.forEach(req => {
-                const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
-                const absentClass = req.is_absent ? ' shift-absent' : '';
-                html += `<div class="shift-info shift-confirmed${absentClass}" style="cursor: pointer;" onclick="event.stopPropagation(); openRequestDetail('${req.id}')">${req.user_name} ${timeSlot}</div>`;
+            const userGroups = groupShiftsByUser(dayApprovedRequests, getRequestStart);
+            userGroups.forEach(group => {
+                const allAbsent = group.items.every(it => it.is_absent);
+                const rowAbsentClass = allAbsent ? ' shift-absent' : '';
+                const chips = group.items.map(req => {
+                    const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
+                    const chipAbsent = (!allAbsent && req.is_absent) ? ' shift-time-chip-absent' : '';
+                    return `<span class="shift-time-chip${chipAbsent}" onclick="event.stopPropagation(); openRequestDetail('${req.id}')">${timeSlot}</span>`;
+                }).join(', ');
+                html += `<div class="shift-info shift-confirmed${rowAbsentClass}">${group.user_name} ${chips}</div>`;
             });
         }
-        
-        // 確定シフトを表示（緑色）
+
+        // 確定シフトを表示（緑色）- 同じユーザーは1行にまとめる
         if (dayConfirmedShifts.length > 0) {
-            dayConfirmedShifts.forEach(shift => {
-                html += `<div class="shift-info shift-confirmed" style="cursor: pointer;" onclick="event.stopPropagation(); window.openShiftEdit('${shift.id}')">${shift.user_name} ${shift.start_time}-${shift.end_time}</div>`;
+            const userGroups = groupShiftsByUser(dayConfirmedShifts, s => s.start_time || '');
+            userGroups.forEach(group => {
+                const chips = group.items.map(shift =>
+                    `<span class="shift-time-chip" onclick="event.stopPropagation(); window.openShiftEdit('${shift.id}')">${shift.start_time}-${shift.end_time}</span>`
+                ).join(', ');
+                html += `<div class="shift-info shift-confirmed">${group.user_name} ${chips}</div>`;
             });
         }
         
@@ -1191,24 +1227,46 @@ function generateManagementCalendar(year, month, requests, shifts) {
         html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !isWeekend ? `openQuickCreateForDate('${dateStr}')` : ''}" style="${!hasData && !isWeekend ? 'cursor: pointer;' : ''}">`;
         html += `<div class="day-number">${day}</div>`;
         
-        // 未承認シフト（黄色）を先に表示
-        dayRequests.filter(req => req.status === 'pending').forEach(req => {
-            const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
-            html += `<div class="shift-info request-pending" style="cursor: pointer;" onclick="event.stopPropagation(); openMgmtModal('request', '${req.id}')">${timeSlot} (未)</div>`;
-        });
-        
-        // 承認済みシフト（緑、欠勤は取消線）
-        dayRequests.filter(req => req.status === 'approved').forEach(req => {
-            const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
-            const absentClass = req.is_absent ? ' shift-absent' : '';
-            const label = req.is_absent ? '(欠勤)' : '(承認)';
-            html += `<div class="shift-info shift-confirmed${absentClass}" style="cursor: pointer;" onclick="event.stopPropagation(); openMgmtModal('request', '${req.id}')">${timeSlot} ${label}</div>`;
-        });
-        
-        // 確定シフト（赤→緑に変更済み）
-        dayShifts.forEach(shift => {
-            html += `<div class="shift-info shift-confirmed" style="cursor: pointer;" onclick="event.stopPropagation(); openMgmtModal('shift', '${shift.id}')">${shift.start_time}-${shift.end_time}</div>`;
-        });
+        // 未承認シフト（黄色）を先に表示 - 1日分まとめて1行
+        const pendingItems = dayRequests
+            .filter(req => req.status === 'pending')
+            .slice()
+            .sort((a, b) => (getRequestStart(a) || '').localeCompare(getRequestStart(b) || ''));
+        if (pendingItems.length > 0) {
+            const chips = pendingItems.map(req => {
+                const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
+                return `<span class="shift-time-chip" onclick="event.stopPropagation(); openMgmtModal('request', '${req.id}')">${timeSlot}</span>`;
+            }).join(', ');
+            html += `<div class="shift-info request-pending">${chips} (未)</div>`;
+        }
+
+        // 承認済みシフト（緑、欠勤は取消線）- 1日分まとめて1行
+        const approvedItems = dayRequests
+            .filter(req => req.status === 'approved')
+            .slice()
+            .sort((a, b) => (getRequestStart(a) || '').localeCompare(getRequestStart(b) || ''));
+        if (approvedItems.length > 0) {
+            const allAbsent = approvedItems.every(it => it.is_absent);
+            const rowAbsentClass = allAbsent ? ' shift-absent' : '';
+            const label = allAbsent ? '(欠勤)' : (approvedItems.some(it => it.is_absent) ? '(承認/一部欠勤)' : '(承認)');
+            const chips = approvedItems.map(req => {
+                const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
+                const chipAbsent = (!allAbsent && req.is_absent) ? ' shift-time-chip-absent' : '';
+                return `<span class="shift-time-chip${chipAbsent}" onclick="event.stopPropagation(); openMgmtModal('request', '${req.id}')">${timeSlot}</span>`;
+            }).join(', ');
+            html += `<div class="shift-info shift-confirmed${rowAbsentClass}">${chips} ${label}</div>`;
+        }
+
+        // 確定シフト（緑）- 1日分まとめて1行
+        const confirmedItems = dayShifts
+            .slice()
+            .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+        if (confirmedItems.length > 0) {
+            const chips = confirmedItems.map(shift =>
+                `<span class="shift-time-chip" onclick="event.stopPropagation(); openMgmtModal('shift', '${shift.id}')">${shift.start_time}-${shift.end_time}</span>`
+            ).join(', ');
+            html += `<div class="shift-info shift-confirmed">${chips}</div>`;
+        }
         
         html += '</div>';
     }

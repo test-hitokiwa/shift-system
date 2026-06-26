@@ -814,8 +814,10 @@ textarea.form-control {
     text-align: center;
     min-height: 18px;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
+    gap: 2px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -844,6 +846,23 @@ textarea.form-control {
     background: linear-gradient(135deg, #b39ddb 0%, #9575cd 100%) !important;
     color: white !important;
     box-shadow: 0 2px 4px rgba(149, 117, 205, 0.4) !important;
+}
+
+/* 中抜けシフトを 1 行にまとめた場合の時刻チップ */
+.shift-info .shift-time-chip {
+    cursor: pointer;
+    padding: 0 2px;
+    border-radius: 2px;
+    transition: background 0.15s ease;
+    white-space: nowrap;
+    display: inline-block;
+}
+.shift-info .shift-time-chip:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+.shift-info .shift-time-chip-absent {
+    text-decoration: line-through;
+    opacity: 0.85;
 }
 
 /* 複数日付選択用カレンダー */
