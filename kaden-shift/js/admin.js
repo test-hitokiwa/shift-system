@@ -1825,8 +1825,81 @@ function openQuickCreateForDate(dateStr) {
 }
 
 // クイック作成モーダルを閉じる
+// 中抜け（休憩・分割シフト）の行を管理
+let nakanukeRowCount = 0;
+
+// 中抜けの時刻入力行を1行追加する
+function addNakanukeRow() {
+    const container = document.getElementById('nakanukeContainer');
+    if (!container) return;
+    nakanukeRowCount++;
+    const rowId = 'nakanukeRow_' + nakanukeRowCount;
+    const startHourId = 'nakanukeStartHour_' + nakanukeRowCount;
+    const startMinId = 'nakanukeStartMin_' + nakanukeRowCount;
+    const endHourId = 'nakanukeEndHour_' + nakanukeRowCount;
+    const endMinId = 'nakanukeEndMin_' + nakanukeRowCount;
+
+    const row = document.createElement('div');
+    row.id = rowId;
+    row.className = 'nakanuke-row';
+    row.style.cssText = 'display: flex; align-items: flex-end; gap: 8px; margin-top: 8px;';
+    row.innerHTML =
+        '<div class="form-group" style="flex: 1; margin: 0;">' +
+            '<label>中抜け開始</label>' +
+            '<div style="display: flex; gap: 5px;">' +
+                '<select id="' + startHourId + '" class="form-control" style="width: 50%;"></select>' +
+                '<select id="' + startMinId + '" class="form-control" style="width: 50%;"></select>' +
+            '</div>' +
+        '</div>' +
+        '<div class="form-group" style="flex: 1; margin: 0;">' +
+            '<label>中抜け終了</label>' +
+            '<div style="display: flex; gap: 5px;">' +
+                '<select id="' + endHourId + '" class="form-control" style="width: 50%;"></select>' +
+                '<select id="' + endMinId + '" class="form-control" style="width: 50%;"></select>' +
+            '</div>' +
+        '</div>' +
+        '<button type="button" class="btn btn-danger btn-small" onclick="removeNakanukeRow(\'' + rowId + '\')">削除</button>';
+
+    container.appendChild(row);
+
+    // 時・分の選択肢を生成（既存の開始/終了時刻と同じ）
+    generateHourMinOptions(startHourId, startMinId);
+    generateHourMinOptions(endHourId, endMinId);
+}
+
+// 中抜けの行を削除する
+function removeNakanukeRow(rowId) {
+    const row = document.getElementById(rowId);
+    if (row) row.remove();
+}
+
+// 中抜けのすべての行をクリアする
+function clearNakanukeRows() {
+    const container = document.getElementById('nakanukeContainer');
+    if (container) container.innerHTML = '';
+    nakanukeRowCount = 0;
+}
+
+// 入力済みの中抜け時間帯を "HH:MM-HH:MM" の配列で取得する
+function getNakanukeSlots() {
+    const container = document.getElementById('nakanukeContainer');
+    if (!container) return [];
+    const slots = [];
+    container.querySelectorAll('.nakanuke-row').forEach(row => {
+        const selects = row.querySelectorAll('select');
+        if (selects.length < 4) return;
+        const startTime = getTimeString(selects[0].value, selects[1].value);
+        const endTime = getTimeString(selects[2].value, selects[3].value);
+        if (startTime && endTime) {
+            slots.push(`${startTime}-${endTime}`);
+        }
+    });
+    return slots;
+}
+
 function closeQuickCreateModal() {
     document.getElementById('quickCreateModal').style.display = 'none';
+    clearNakanukeRows();
 }
 
 // クイック作成を保存
@@ -1876,7 +1949,7 @@ async function saveQuickCreate() {
             user_id: userId,
             user_name: userName,
             date: date,
-            time_slots: [`${startTime}-${endTime}`],
+            time_slots: [`${startTime}-${endTime}`, ...getNakanukeSlots()],
             status: type, // 'approved' or 'pending'
             notes: notes
         };
