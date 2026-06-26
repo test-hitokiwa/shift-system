@@ -1746,6 +1746,7 @@ async function openMgmtModal(type, id) {
             
             const isAbsent = !!data.is_absent;
             document.getElementById('mgmtShiftInfo').innerHTML = `
+                <p><strong>スタッフ:</strong> ${data.user_name || '（不明）'}</p>
                 <p><strong>日付:</strong> ${data.date}</p>
                 <p><strong>ステータス:</strong> ${data.status === 'approved' ? '承認済み' : '未承認'}${isAbsent ? ' <span style="color: #dc3545; font-weight: 700;">（欠勤）</span>' : ''}</p>
             `;
@@ -1783,6 +1784,7 @@ async function openMgmtModal(type, id) {
             document.getElementById('mgmtNotes').value = data.notes || '';
             
             document.getElementById('mgmtShiftInfo').innerHTML = `
+                <p><strong>スタッフ:</strong> ${data.user_name || '（不明）'}</p>
                 <p><strong>日付:</strong> ${data.date}</p>
                 <p><strong>ステータス:</strong> 確定済み</p>
             `;
