@@ -843,12 +843,12 @@ textarea.form-control {
    カレンダーセル (新構造)
    - スクロールなし: セルは内容に合わせて伸びる
    - 日付は通常の流れで上部に配置 (sticky 不要)
-   - ヘッダー帯 + 本文 でクリーンな視覚分離
+   - 2 列グリッド (auto | 1fr) を採用し、内部の shift-info は
+     subgrid で列を共有する。これにより同一セル内の全シフトの
+     ユーザー名 / 時刻が縦にぴったり揃う。
    ========================= */
 .calendar-day {
     aspect-ratio: unset;
-    align-items: stretch;
-    justify-content: flex-start;
     cursor: default;
     padding: 0;
     min-height: 96px;
@@ -859,8 +859,20 @@ textarea.form-control {
     overflow: hidden;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     box-shadow: var(--shadow-xs);
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 10px;
+    grid-auto-rows: min-content;
+    align-content: start;
+    justify-content: stretch;
+    justify-items: stretch;
+    align-items: stretch;
+}
+/* day-number と shift-info はセル幅いっぱいに広げる
+   (内部要素は subgrid を通して列共有) */
+.calendar-day > .day-number,
+.calendar-day > .shift-info {
+    grid-column: 1 / -1;
 }
 
 .calendar-day:hover {
@@ -1009,19 +1021,15 @@ textarea.form-control {
    - CSS Grid (auto | 1fr) で「名前 | 時刻チップを縦に積む列」を作る
    - 名前は grid-row 1 に固定、時刻チップは col2 に自動で順に積まれる
    ========================= */
+/* 親の calendar-day grid から auto/1fr の列を継承する subgrid 構造。
+   これで全 shift-info の名前と時刻が同じ列位置に揃う。 */
 .shift-info.shift-grouped {
     display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: 10px;
+    grid-template-columns: subgrid;
     row-gap: 1px;
     align-items: start;
-    justify-items: end;
     padding: 6px 10px;
     line-height: 1.4;
-}
-/* 名前列は左寄せ、時刻列は右寄せ */
-.shift-info.shift-grouped .shift-name {
-    justify-self: start;
 }
 .shift-info.shift-grouped .shift-name {
     grid-column: 1;
@@ -1029,10 +1037,12 @@ textarea.form-control {
     font-weight: 700;
     white-space: nowrap;
     align-self: start;
+    justify-self: start;
     padding-top: 1px;
 }
 .shift-info.shift-grouped .shift-time-chip {
     grid-column: 2;
+    justify-self: start;     /* 時刻列の左端で揃える */
     cursor: pointer;
     padding: 1px 6px;
     border-radius: 4px;
@@ -1068,7 +1078,8 @@ textarea.form-control {
     letter-spacing: 0.02em;
 }
 
-/* 名前を出さないバリアント（スタッフ／管理カレンダーの per-staff 表示） */
+/* 名前を出さないバリアント（スタッフ／管理カレンダーの per-staff 表示）
+   subgrid を解除し独自の 1 列レイアウトに */
 .shift-info.shift-grouped-no-name {
     grid-template-columns: 1fr;
 }
