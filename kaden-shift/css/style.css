@@ -870,7 +870,9 @@ textarea.form-control {
     transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     box-shadow: var(--shadow-xs);
     display: grid;
-    grid-template-columns: auto 1fr;
+    /* 名前列は伸縮 (最小 0)、時間列は内容に合わせて確保。
+       時間が必ず収まり、名前は長ければ ellipsis で切り捨てる。 */
+    grid-template-columns: minmax(0, 1fr) auto;
     column-gap: 10px;
     grid-auto-rows: min-content;
     align-content: start;
@@ -1047,8 +1049,12 @@ textarea.form-control {
     font-weight: 700;
     white-space: nowrap;
     align-self: start;
-    justify-self: start;
+    justify-self: stretch;
     padding-top: 1px;
+    /* 名前が長すぎる場合は ellipsis で切り捨て。時間表示を優先する */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 .shift-info.shift-grouped .shift-time-chip {
     grid-column: 2;
