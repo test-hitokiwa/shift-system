@@ -1830,12 +1830,29 @@ function closeQuickCreateModal() {
 }
 
 // クイック作成を保存
+// 入社日 / 退職日のチェック: NG なら true を返し toast を表示
+async function checkHireRetireBlock(userId, shiftDate) {
+    if (!userId || !shiftDate) return false;
+    const { users } = await getCachedData();
+    const user = users.find(u => u.id === userId);
+    if (!user) return false;
+    if (user.hire_date && shiftDate < user.hire_date) {
+        showToast(`${user.name} さんの入社日 (${user.hire_date}) より前の日付にはシフトを作成できません`, 'error');
+        return true;
+    }
+    if (user.retirement_date && shiftDate > user.retirement_date) {
+        showToast(`${user.name} さんの退職日 (${user.retirement_date}) より後の日付にはシフトを作成できません`, 'error');
+        return true;
+    }
+    return false;
+}
+
 async function saveQuickCreate() {
     const date = document.getElementById('quickCreateDate').value;
     const userId = document.getElementById('quickCreateUserId').value;
     const userName = document.getElementById('quickCreateUserDisplay').textContent;
     const type = document.getElementById('quickCreateType').value;
-    
+
     // 時・分から時刻を取得
     const startHour = document.getElementById('quickStartHour').value;
     const startMin = document.getElementById('quickStartMin').value;
@@ -1844,12 +1861,15 @@ async function saveQuickCreate() {
     const startTime = getTimeString(startHour, startMin);
     const endTime = getTimeString(endHour, endMin);
     const notes = document.getElementById('quickNotes').value;
-    
+
     if (!startTime || !endTime) {
         showToast('時間を入力してください', 'error');
         return;
     }
-    
+
+    // 入社日 / 退職日チェック
+    if (await checkHireRetireBlock(userId, date)) return;
+
     try {
         // すべて shift_requests テーブルに保存（承認済み or 未承認）
         const requestData = {
@@ -2308,12 +2328,15 @@ async function saveGeneralQuickCreate() {
         showToast('スタッフを選択してください', 'error');
         return;
     }
-    
+
     if (!startTime || !endTime) {
         showToast('時間を入力してください', 'error');
         return;
     }
-    
+
+    // 入社日 / 退職日チェック
+    if (await checkHireRetireBlock(userId, date)) return;
+
     try {
         // すべて shift_requests テーブルに保存（承認済み or 未承認）
         const requestData = {
@@ -2324,13 +2347,13 @@ async function saveGeneralQuickCreate() {
             status: type, // 'approved' or 'pending'
             notes: notes
         };
-        
+
         await fetch(API_BASE_URL + '/tables/shift_requests', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestData)
         });
-        
+
         showToast('作成しました', 'success');
         closeGeneralQuickCreateModal();
         loadCalendar();

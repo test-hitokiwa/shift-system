@@ -34,10 +34,14 @@ async function loadUsers() {
         
         const userSelect = document.getElementById('userSelect');
         userSelect.innerHTML = '<option value="">選択してください</option>';
-        
+
+        // 退職済み (retirement_date < 今日) のユーザーは選択肢から除外
+        const today = new Date().toISOString().slice(0, 10);
+        const activeUsers = result.data.filter(u => !u.retirement_date || u.retirement_date >= today);
+
         // スタッフと管理者を分ける
-        const staffUsers = result.data.filter(user => user.role !== 'admin');
-        const adminUsers = result.data.filter(user => user.role === 'admin');
+        const staffUsers = activeUsers.filter(user => user.role !== 'admin');
+        const adminUsers = activeUsers.filter(user => user.role === 'admin');
         
         // スタッフを登録順（created_at 昇順）にソート
         staffUsers.sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
@@ -97,6 +101,15 @@ async function handleLogin() {
     if (selectedUser.password !== password) {
         alert('パスワードが正しくありません');
         return;
+    }
+
+    // 退職済みチェック (退職日 < 今日 はログイン不可)
+    if (selectedUser.retirement_date) {
+        const today = new Date().toISOString().slice(0, 10);
+        if (selectedUser.retirement_date < today) {
+            alert(`このアカウントは退職済み (退職日: ${selectedUser.retirement_date}) のためログインできません。`);
+            return;
+        }
     }
     
     // セッション情報を保存（localStorageを使用）
