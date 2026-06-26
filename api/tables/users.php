@@ -166,21 +166,39 @@ try {
         $phone = $input['phone'] ?? $existing['phone'];
         $password = $input['password'] ?? $existing['password'];
 
-        // 退職日 / 別営業: 明示的に null も受け付ける
-        $retirementDate = array_key_exists('retirement_date', $input)
-            ? ($input['retirement_date'] ?: null)
-            : ($existing['retirement_date'] ?? null);
-        $branch = array_key_exists('branch', $input)
-            ? ($input['branch'] ?: null)
-            : ($existing['branch'] ?? null);
+        // SET 句を動的に組み立てる
+        // (retirement_date / branch カラムが未マイグレーションでも基本フィールド更新は壊さない)
+        $sets   = ['name = ?', 'role = ?', 'phone = ?', 'password = ?', 'updated_at = ?'];
+        $params = [$name, $role, $phone, $password, $now];
 
-        $stmt = $pdo->prepare("
-            UPDATE users
-            SET name = ?, role = ?, phone = ?, password = ?,
-                retirement_date = ?, branch = ?, updated_at = ?
-            WHERE id = ?
-        ");
-        $stmt->execute([$name, $role, $phone, $password, $retirementDate, $branch, $now, $userId]);
+        $retirementDate = null;
+        if (array_key_exists('retirement_date', $input)) {
+            $retirementDate = $input['retirement_date'] ?: null;
+            $sets[] = 'retirement_date = ?';
+            $params[] = $retirementDate;
+        }
+        $branch = null;
+        if (array_key_exists('branch', $input)) {
+            $branch = $input['branch'] ?: null;
+            $sets[] = 'branch = ?';
+            $params[] = $branch;
+        }
+
+        $params[] = $userId;
+        $sql = "UPDATE users SET " . implode(', ', $sets) . " WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+
+        try {
+            $stmt->execute($params);
+        } catch (PDOException $e) {
+            // カラム未追加の場合は migration を促すエラーメッセージ
+            if (strpos($e->getMessage(), 'retirement_date') !== false || strpos($e->getMessage(), 'branch') !== false) {
+                http_response_code(500);
+                echo json_encode(['error' => 'マイグレーション未実行: /migrate_add_retirement_branch.php を一度ブラウザで開いてください']);
+                exit();
+            }
+            throw $e;
+        }
 
         echo json_encode([
             'id' => $userId,

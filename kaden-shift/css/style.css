@@ -272,35 +272,37 @@ textarea.form-control {
     border-color: #cbd5e1;
 }
 
-/* 集計テーブル内の「別営業」切替ボタン */
+/* 集計テーブル内の「別営業」切替ボタン (A/B/.../G または — を表示) */
 .btn-branch-toggle {
-    padding: 4px 10px;
-    font-size: 11px;
-    font-weight: 600;
+    padding: 3px 0;
+    font-size: 12px;
+    font-weight: 700;
     background: white;
-    color: var(--indigo-600);
-    border: 1px solid var(--indigo-300);
-    border-radius: 999px;
+    color: var(--slate-400);
+    border: 1px dashed var(--slate-300);
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.15s ease;
     white-space: nowrap;
     min-height: 0;
-    width: auto;
+    width: 32px;
     margin-bottom: 0;
 }
 .btn-branch-toggle:hover {
     background: var(--indigo-50);
     border-color: var(--indigo-500);
+    color: var(--indigo-600);
 }
-.branch-badge {
-    display: inline-block;
-    margin-left: 4px;
-    padding: 1px 6px;
+.btn-branch-toggle.assigned {
     background: var(--indigo-600);
     color: white;
-    border-radius: 999px;
-    font-size: 10px;
-    font-weight: 700;
+    border: 1px solid var(--indigo-600);
+    box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
+}
+.btn-branch-toggle.assigned:hover {
+    background: var(--indigo-700);
+    border-color: var(--indigo-700);
+    color: white;
 }
 
 .btn-small {
@@ -1493,7 +1495,17 @@ textarea.form-control {
     font-size: 13px;
 }
 
+/* 1 列目: 別営業ボタン (幅最小) */
+.period-totals-table th:first-child,
 .period-totals-table td:first-child {
+    width: 1%;
+    white-space: nowrap;
+    text-align: center;
+    padding: 6px 4px;
+}
+/* 2 列目: スタッフ名 */
+.period-totals-table th:nth-child(2),
+.period-totals-table td:nth-child(2) {
     text-align: left;
     font-weight: 600;
 }

@@ -746,8 +746,8 @@ async function loadUsersList() {
                 <div style="margin: 8px 0;">パスワード: ${user.password}</div>
                 <div class="request-actions">
                     <button class="btn btn-primary btn-small" onclick="window.editUser('${user.id}')">編集</button>
-                    <button class="btn btn-warning btn-small" onclick="window.openRetirementModal('${user.id}', '${(user.name || '').replace(/'/g, "\\'")}', '${user.retirement_date || ''}')">${isRetired ? '退職日変更' : '退職'}</button>
-                    <button class="btn btn-danger btn-small" onclick="window.deleteUser('${user.id}')">削除</button>
+                    <button class="btn btn-danger btn-small" onclick="window.openRetirementModal('${user.id}', '${(user.name || '').replace(/'/g, "\\'")}', '${user.retirement_date || ''}')">${isRetired ? '退職日変更' : '退職'}</button>
+                    <button class="btn btn-secondary btn-small" onclick="window.deleteUser('${user.id}')">削除</button>
                 </div>
             </div>
             `;
@@ -1659,16 +1659,15 @@ async function calculatePeriodTotals() {
                 : `<h4 style="margin: 24px 0 8px; color: var(--indigo-700);">別営業 ${groupKey}</h4>`;
 
             let table = heading + '<table class="period-totals-table">';
-            table += '<thead><tr><th></th><th>スタッフ</th><th>未承認</th><th>承認済み</th><th>合計</th><th>実出勤</th></tr></thead><tbody>';
+            table += '<thead><tr><th>別営業</th><th>スタッフ</th><th>未承認</th><th>承認済み</th><th>合計</th><th>実出勤</th></tr></thead><tbody>';
             items.forEach(v => {
                 const absent = v.absent || 0;
                 const actual = v.approved - absent;
-                const branchBadge = v.branch
-                    ? `<span class="branch-badge">別営業${v.branch}</span>`
-                    : '';
                 const safeName = (v.name || '').replace(/'/g, "\\'");
+                const btnLabel = v.branch || '—';
+                const btnClass = v.branch ? 'btn-branch-toggle assigned' : 'btn-branch-toggle';
                 table += `<tr>
-                    <td><button type="button" class="btn btn-branch-toggle" onclick="window.openBranchModal('${v.user_id}', '${safeName}')" title="別営業を設定">別営業${branchBadge}</button></td>
+                    <td><button type="button" class="btn ${btnClass}" onclick="window.openBranchModal('${v.user_id}', '${safeName}')" title="別営業を設定">${btnLabel}</button></td>
                     <td>${v.name}</td>
                     <td>${v.pending.toFixed(1)}h</td>
                     <td>${v.approved.toFixed(1)}h</td>
