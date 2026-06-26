@@ -870,9 +870,10 @@ textarea.form-control {
     transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     box-shadow: var(--shadow-xs);
     display: grid;
-    /* 名前列は伸縮 (最小 0)、時間列は内容に合わせて確保。
-       時間が必ず収まり、名前は長ければ ellipsis で切り捨てる。 */
-    grid-template-columns: minmax(0, 1fr) auto;
+    /* 名前列は最小 5em (約 3 文字 + ellipsis) を保証して伸縮、
+       時間列は内容に合わせて確保。
+       時間は必ず収まり、名前は 3 文字までは確実に見える */
+    grid-template-columns: minmax(5em, 1fr) auto;
     column-gap: 10px;
     grid-auto-rows: min-content;
     align-content: start;
