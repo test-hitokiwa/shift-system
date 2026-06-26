@@ -1856,14 +1856,14 @@ function addNakanukeRow(containerId, startVal, endVal) {
     row.style.cssText = 'display: flex; align-items: flex-end; gap: 8px; margin-top: 8px;';
     row.innerHTML =
         '<div class="form-group" style="flex: 1; margin: 0;">' +
-            '<label>中抜け開始</label>' +
+            '<label>戻り時間</label>' +
             '<div style="display: flex; gap: 5px;">' +
                 '<select id="' + startHourId + '" class="form-control" style="width: 50%;"></select>' +
                 '<select id="' + startMinId + '" class="form-control" style="width: 50%;"></select>' +
             '</div>' +
         '</div>' +
         '<div class="form-group" style="flex: 1; margin: 0;">' +
-            '<label>中抜け終了</label>' +
+            '<label>退勤時間</label>' +
             '<div style="display: flex; gap: 5px;">' +
                 '<select id="' + endHourId + '" class="form-control" style="width: 50%;"></select>' +
                 '<select id="' + endMinId + '" class="form-control" style="width: 50%;"></select>' +
