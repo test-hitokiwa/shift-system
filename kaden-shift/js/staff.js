@@ -3,6 +3,27 @@
 // APIベースURL
 const API_BASE_URL = 'https://thriving-surprise-production-c740.up.railway.app';
 
+// 日本の祝日 (2025-2027)
+const JP_HOLIDAYS = new Set([
+    '2025-01-01', '2025-01-13', '2025-02-11', '2025-02-23', '2025-02-24',
+    '2025-03-20', '2025-04-29', '2025-05-03', '2025-05-04', '2025-05-05', '2025-05-06',
+    '2025-07-21', '2025-08-11', '2025-09-15', '2025-09-23', '2025-10-13',
+    '2025-11-03', '2025-11-23', '2025-11-24',
+    '2026-01-01', '2026-01-12', '2026-02-11', '2026-02-23', '2026-03-20',
+    '2026-04-29', '2026-05-03', '2026-05-04', '2026-05-05', '2026-05-06',
+    '2026-07-20', '2026-08-11', '2026-09-21', '2026-09-22', '2026-09-23',
+    '2026-10-12', '2026-11-03', '2026-11-23',
+    '2027-01-01', '2027-01-11', '2027-02-11', '2027-02-23', '2027-03-21', '2027-03-22',
+    '2027-04-29', '2027-05-03', '2027-05-04', '2027-05-05',
+    '2027-07-19', '2027-08-11', '2027-09-20', '2027-09-23',
+    '2027-10-11', '2027-11-03', '2027-11-23',
+]);
+function isJapaneseHoliday(dateStr) { return JP_HOLIDAYS.has(dateStr); }
+function isOffDay(cellDate, dateStr) {
+    const dow = cellDate.getDay();
+    return dow === 0 || dow === 6 || isJapaneseHoliday(dateStr);
+}
+
 // トースト通知を表示
 function showToast(message, type = 'success') {
     const existingToast = document.querySelector('.toast');
@@ -206,17 +227,17 @@ async function renderDateCalendar() {
             const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
             const cellDate = new Date(year, month - 1, day);
             const isPast = cellDate < today;
-            const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6; // 日曜日(0)または土曜日(6)
+            const offDay = isOffDay(cellDate, dateStr);
             const isSelected = selectedDates.includes(dateStr);
-            
+
             const dayRequests = requestsByDate[dateStr] || [];
             const dayShifts = shiftsByDate[dateStr] || [];
-            
+
             const classNames = ['date-calendar-day'];
-            if (isPast || isWeekend) classNames.push('disabled');
+            if (isPast || offDay) classNames.push('disabled');
             if (isSelected) classNames.push('selected');
-            
-            html += `<div class="${classNames.join(' ')}" onclick="${!isPast && !isWeekend ? `toggleDateSelection('${dateStr}')` : ''}">`;
+
+            html += `<div class="${classNames.join(' ')}" onclick="${!isPast && !offDay ? `toggleDateSelection('${dateStr}')` : ''}">`;
             html += `<div class="date-num">${day}</div>`;
             
             // 確定シフト（緑）を先に表示
@@ -592,23 +613,23 @@ function generateCalendar(year, month, shifts, requests) {
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
         const cellDate = new Date(year, month - 1, day);
-        const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6; // 土日判定
+        const offDay = isOffDay(cellDate, dateStr);
         const dayShifts = shiftsByDate[dateStr] || [];
         const dayRequests = requestsByDate[dateStr] || [];
-        
+
         const hasData = dayShifts.length > 0 || dayRequests.length > 0;
-        
+
         const classNames = ['calendar-day'];
-        if (isWeekend) {
+        if (offDay) {
             classNames.push('weekend');
         } else if (hasData) {
             classNames.push('has-shift');
         } else {
             classNames.push('clickable-empty');
         }
-        
-        html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !isWeekend ? `openStaffQuickCreate('${dateStr}')` : ''}" style="${!hasData && !isWeekend ? 'cursor: pointer;' : ''}">`;
-        html += `<div class="day-number">${day}</div>`;
+
+        html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !offDay ? `openStaffQuickCreate('${dateStr}')` : ''}" style="${!hasData && !offDay ? 'cursor: pointer;' : ''}">`;
+        html += `<div class="day-number"><span class="day-num">${day}</span></div>`;
         
         // 確定シフト（緑）- 1日分まとめて
         if (dayShifts.length > 0) {

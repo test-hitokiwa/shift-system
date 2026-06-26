@@ -826,41 +826,68 @@ textarea.form-control {
     border-color: var(--indigo-100);
 }
 
+/* 土日・祝日: 日付を赤に */
 .calendar-day.weekend {
-    background: var(--slate-50);
-    opacity: 0.7;
+    background: #fff5f5;
     cursor: default;
 }
 
 .calendar-day.weekend:hover {
     box-shadow: var(--shadow-xs);
     transform: none;
-    border-color: var(--slate-200);
+    border-color: #fecaca;
 }
 
 .calendar-day.weekend .day-number {
-    color: var(--slate-400);
-    text-decoration: line-through;
-    background: var(--slate-100);
+    color: #dc2626;
+    background: #fee2e2;
+    border-bottom-color: #fecaca;
+    text-decoration: none;
+}
+.calendar-day.weekend .day-number .day-num {
+    color: #dc2626;
 }
 
-/* 日付ヘッダー帯 */
+/* 日付ヘッダー帯 (日付 + 出勤者数バッジ) */
 .day-number {
     font-weight: 700;
     font-size: 13px;
-    padding: 7px 12px;
+    padding: 6px 12px;
     color: var(--slate-600);
     background: var(--slate-50);
     border-bottom: 1px solid var(--slate-200);
     flex-shrink: 0;
     letter-spacing: 0.02em;
     line-height: 1.2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+.day-number .day-num {
+    flex-shrink: 0;
+}
+.day-number .day-count {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--indigo-600);
+    background: white;
+    padding: 1px 7px;
+    border-radius: 999px;
+    border: 1px solid var(--indigo-100);
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
 }
 
 .calendar-day.has-shift .day-number {
     color: var(--indigo-700);
     background: var(--indigo-50);
     border-bottom-color: var(--indigo-100);
+}
+.calendar-day.has-shift .day-number .day-count {
+    background: var(--indigo-600);
+    color: white;
+    border-color: var(--indigo-600);
 }
 
 /* セル本文 (シフトカード群): 上下方向に並べる */
@@ -1234,6 +1261,10 @@ textarea.form-control {
     body.admin-page .day-number {
         font-size: 15px;
         padding: 9px 14px;
+    }
+    body.admin-page .day-number .day-count {
+        font-size: 12px;
+        padding: 2px 10px;
     }
 
     body.admin-page .shift-info {

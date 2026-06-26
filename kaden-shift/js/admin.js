@@ -3,6 +3,35 @@
 // APIベースURL
 const API_BASE_URL = 'https://thriving-surprise-production-c740.up.railway.app';
 
+// 日本の祝日 (2025-2027)。振替休日・国民の休日も含む。
+// 必要に応じて毎年追記。
+const JP_HOLIDAYS = new Set([
+    // 2025
+    '2025-01-01', '2025-01-13', '2025-02-11', '2025-02-23', '2025-02-24',
+    '2025-03-20', '2025-04-29', '2025-05-03', '2025-05-04', '2025-05-05', '2025-05-06',
+    '2025-07-21', '2025-08-11', '2025-09-15', '2025-09-23', '2025-10-13',
+    '2025-11-03', '2025-11-23', '2025-11-24',
+    // 2026
+    '2026-01-01', '2026-01-12', '2026-02-11', '2026-02-23', '2026-03-20',
+    '2026-04-29', '2026-05-03', '2026-05-04', '2026-05-05', '2026-05-06',
+    '2026-07-20', '2026-08-11', '2026-09-21', '2026-09-22', '2026-09-23',
+    '2026-10-12', '2026-11-03', '2026-11-23',
+    // 2027
+    '2027-01-01', '2027-01-11', '2027-02-11', '2027-02-23', '2027-03-21', '2027-03-22',
+    '2027-04-29', '2027-05-03', '2027-05-04', '2027-05-05',
+    '2027-07-19', '2027-08-11', '2027-09-20', '2027-09-23',
+    '2027-10-11', '2027-11-03', '2027-11-23',
+]);
+
+function isJapaneseHoliday(dateStr) {
+    return JP_HOLIDAYS.has(dateStr);
+}
+
+function isOffDay(cellDate, dateStr) {
+    const dow = cellDate.getDay();
+    return dow === 0 || dow === 6 || isJapaneseHoliday(dateStr);
+}
+
 // トースト通知を表示
 function showToast(message, type = 'success') {
     // 既存のトーストを削除
@@ -1033,18 +1062,28 @@ function generateRequestCalendar(year, month, requests) {
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
         const cellDate = new Date(year, month - 1, day);
-        const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6; // 土日判定
+        const offDay = isOffDay(cellDate, dateStr);
         const dayRequests = requests.filter(r => r.date === dateStr);
-        
+
         const classNames = ['calendar-day'];
-        if (isWeekend) {
+        if (offDay) {
             classNames.push('weekend');
         } else if (dayRequests.length > 0) {
             classNames.push('has-shift');
         }
-        
+
+        // 平日のみ希望提出ユーザー数を集計
+        let countHtml = '';
+        if (!offDay) {
+            const uniqueUsers = new Set();
+            dayRequests.forEach(r => { if (r.user_id) uniqueUsers.add(r.user_id); });
+            if (uniqueUsers.size > 0) {
+                countHtml = `<span class="day-count">${uniqueUsers.size}名</span>`;
+            }
+        }
+
         html += `<div class="${classNames.join(' ')}">`;
-        html += `<div class="day-number">${day}</div>`;
+        html += `<div class="day-number"><span class="day-num">${day}</span>${countHtml}</div>`;
         
         if (dayRequests.length > 0) {
             // 同じユーザーの中抜けシフトを 1 ブロック (名前 + 時刻チップ列) にまとめる
@@ -1092,27 +1131,38 @@ function generateApprovedCalendar(year, month, approvedRequests, confirmedShifts
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
         const cellDate = new Date(year, month - 1, day);
-        const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6; // 土日判定
-        
+        const offDay = isOffDay(cellDate, dateStr);
+
         // 承認済み希望シフト
         const dayApprovedRequests = approvedRequests.filter(r => r.date === dateStr);
-        
+
         // 確定シフト
         const dayConfirmedShifts = confirmedShifts.filter(s => s.date === dateStr);
-        
+
         const hasData = dayApprovedRequests.length > 0 || dayConfirmedShifts.length > 0;
-        
+
         const classNames = ['calendar-day'];
-        if (isWeekend) {
+        if (offDay) {
             classNames.push('weekend');
         } else if (hasData) {
             classNames.push('has-shift');
         } else {
             classNames.push('clickable-empty');
         }
-        
-        html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !isWeekend ? `openGeneralQuickCreate('${dateStr}')` : ''}" style="${!hasData && !isWeekend ? 'cursor: pointer;' : ''}">`;
-        html += `<div class="day-number">${day}</div>`;
+
+        // 平日のみ出勤者数を集計（承認済み + 確定の重複しないユーザー数）
+        let countHtml = '';
+        if (!offDay) {
+            const uniqueUsers = new Set();
+            dayApprovedRequests.forEach(r => { if (!r.is_absent && r.user_id) uniqueUsers.add(r.user_id); });
+            dayConfirmedShifts.forEach(s => { if (s.user_id) uniqueUsers.add(s.user_id); });
+            if (uniqueUsers.size > 0) {
+                countHtml = `<span class="day-count">${uniqueUsers.size}名</span>`;
+            }
+        }
+
+        html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !offDay ? `openGeneralQuickCreate('${dateStr}')` : ''}" style="${!hasData && !offDay ? 'cursor: pointer;' : ''}">`;
+        html += `<div class="day-number"><span class="day-num">${day}</span>${countHtml}</div>`;
         
         // 承認済み希望シフトを表示（緑色、欠勤は取消線）- 同じユーザーは 1 ブロックにまとめる
         if (dayApprovedRequests.length > 0) {
@@ -1212,23 +1262,23 @@ function generateManagementCalendar(year, month, requests, shifts) {
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
         const cellDate = new Date(year, month - 1, day);
-        const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6; // 土日判定
+        const offDay = isOffDay(cellDate, dateStr);
         const dayRequests = requests.filter(r => r.date === dateStr);
         const dayShifts = shifts.filter(s => s.date === dateStr);
-        
+
         const hasData = dayRequests.length > 0 || dayShifts.length > 0;
-        
+
         const classNames = ['calendar-day'];
-        if (isWeekend) {
+        if (offDay) {
             classNames.push('weekend');
         } else if (hasData) {
             classNames.push('has-shift');
         } else {
             classNames.push('clickable-empty');
         }
-        
-        html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !isWeekend ? `openQuickCreateForDate('${dateStr}')` : ''}" style="${!hasData && !isWeekend ? 'cursor: pointer;' : ''}">`;
-        html += `<div class="day-number">${day}</div>`;
+
+        html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !offDay ? `openQuickCreateForDate('${dateStr}')` : ''}" style="${!hasData && !offDay ? 'cursor: pointer;' : ''}">`;
+        html += `<div class="day-number"><span class="day-num">${day}</span></div>`;
         
         // 未承認シフト（黄色）- 1日分まとめて
         const pendingItems = dayRequests
