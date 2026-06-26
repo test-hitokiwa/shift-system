@@ -59,7 +59,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background: linear-gradient(135deg, #eef2ff 0%, #faf5ff 50%, #fdf2f8 100%);
+    background: linear-gradient(135deg, #c7d2fe 0%, #ddd6fe 50%, #fbcfe8 100%);
     background-attachment: fixed;
     min-height: 100vh;
     padding: 20px;
