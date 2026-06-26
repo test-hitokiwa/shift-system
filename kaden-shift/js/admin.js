@@ -1047,16 +1047,15 @@ function generateRequestCalendar(year, month, requests) {
         html += `<div class="day-number">${day}</div>`;
         
         if (dayRequests.length > 0) {
-            // 同じユーザーの中抜けシフトを縦並びでまとめる（未承認は黄色）
+            // 同じユーザーの中抜けシフトを 1 ブロック (名前 + 時刻チップ列) にまとめる
             const userGroups = groupShiftsByUser(dayRequests, getRequestStart);
             userGroups.forEach(group => {
-                let lines = '';
-                group.items.forEach((req, idx) => {
+                let chips = '';
+                group.items.forEach(req => {
                     const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
-                    const nameCls = idx === 0 ? 'shift-name' : 'shift-name shift-name-placeholder';
-                    lines += `<div class="shift-line"><span class="${nameCls}">${group.user_name}</span><span class="shift-time-chip" onclick="event.stopPropagation(); openRequestDetail('${req.id}')">${timeSlot}</span></div>`;
+                    chips += `<button type="button" class="shift-time-chip" onclick="event.stopPropagation(); openRequestDetail('${req.id}')">${timeSlot}</button>`;
                 });
-                html += `<div class="shift-info request-pending shift-grouped">${lines}</div>`;
+                html += `<div class="shift-info request-pending shift-grouped"><span class="shift-name">${group.user_name}</span>${chips}</div>`;
             });
         }
         
@@ -1115,33 +1114,31 @@ function generateApprovedCalendar(year, month, approvedRequests, confirmedShifts
         html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !isWeekend ? `openGeneralQuickCreate('${dateStr}')` : ''}" style="${!hasData && !isWeekend ? 'cursor: pointer;' : ''}">`;
         html += `<div class="day-number">${day}</div>`;
         
-        // 承認済み希望シフトを表示（緑色、欠勤は取消線）- 同じユーザーは縦並びでまとめる
+        // 承認済み希望シフトを表示（緑色、欠勤は取消線）- 同じユーザーは 1 ブロックにまとめる
         if (dayApprovedRequests.length > 0) {
             const userGroups = groupShiftsByUser(dayApprovedRequests, getRequestStart);
             userGroups.forEach(group => {
                 const allAbsent = group.items.every(it => it.is_absent);
                 const rowAbsentClass = allAbsent ? ' shift-absent' : '';
-                let lines = '';
-                group.items.forEach((req, idx) => {
+                let chips = '';
+                group.items.forEach(req => {
                     const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
-                    const nameCls = idx === 0 ? 'shift-name' : 'shift-name shift-name-placeholder';
                     const chipAbsent = (!allAbsent && req.is_absent) ? ' shift-time-chip-absent' : '';
-                    lines += `<div class="shift-line"><span class="${nameCls}">${group.user_name}</span><span class="shift-time-chip${chipAbsent}" onclick="event.stopPropagation(); openRequestDetail('${req.id}')">${timeSlot}</span></div>`;
+                    chips += `<button type="button" class="shift-time-chip${chipAbsent}" onclick="event.stopPropagation(); openRequestDetail('${req.id}')">${timeSlot}</button>`;
                 });
-                html += `<div class="shift-info shift-confirmed${rowAbsentClass} shift-grouped">${lines}</div>`;
+                html += `<div class="shift-info shift-confirmed${rowAbsentClass} shift-grouped"><span class="shift-name">${group.user_name}</span>${chips}</div>`;
             });
         }
 
-        // 確定シフトを表示（緑色）- 同じユーザーは縦並びでまとめる
+        // 確定シフトを表示（緑色）- 同じユーザーは 1 ブロックにまとめる
         if (dayConfirmedShifts.length > 0) {
             const userGroups = groupShiftsByUser(dayConfirmedShifts, s => s.start_time || '');
             userGroups.forEach(group => {
-                let lines = '';
-                group.items.forEach((shift, idx) => {
-                    const nameCls = idx === 0 ? 'shift-name' : 'shift-name shift-name-placeholder';
-                    lines += `<div class="shift-line"><span class="${nameCls}">${group.user_name}</span><span class="shift-time-chip" onclick="event.stopPropagation(); window.openShiftEdit('${shift.id}')">${shift.start_time}-${shift.end_time}</span></div>`;
+                let chips = '';
+                group.items.forEach(shift => {
+                    chips += `<button type="button" class="shift-time-chip" onclick="event.stopPropagation(); window.openShiftEdit('${shift.id}')">${shift.start_time}-${shift.end_time}</button>`;
                 });
-                html += `<div class="shift-info shift-confirmed shift-grouped">${lines}</div>`;
+                html += `<div class="shift-info shift-confirmed shift-grouped"><span class="shift-name">${group.user_name}</span>${chips}</div>`;
             });
         }
         
@@ -1233,22 +1230,21 @@ function generateManagementCalendar(year, month, requests, shifts) {
         html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !isWeekend ? `openQuickCreateForDate('${dateStr}')` : ''}" style="${!hasData && !isWeekend ? 'cursor: pointer;' : ''}">`;
         html += `<div class="day-number">${day}</div>`;
         
-        // 未承認シフト（黄色）を先に表示 - 1日分まとめて縦並び
+        // 未承認シフト（黄色）- 1日分まとめて
         const pendingItems = dayRequests
             .filter(req => req.status === 'pending')
             .slice()
             .sort((a, b) => (getRequestStart(a) || '').localeCompare(getRequestStart(b) || ''));
         if (pendingItems.length > 0) {
-            let lines = '';
-            pendingItems.forEach((req, idx) => {
+            let chips = '';
+            pendingItems.forEach(req => {
                 const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
-                const tail = idx === pendingItems.length - 1 ? ' <span class="shift-status-label">(未)</span>' : '';
-                lines += `<div class="shift-line"><span class="shift-time-chip" onclick="event.stopPropagation(); openMgmtModal('request', '${req.id}')">${timeSlot}</span>${tail}</div>`;
+                chips += `<button type="button" class="shift-time-chip" onclick="event.stopPropagation(); openMgmtModal('request', '${req.id}')">${timeSlot}</button>`;
             });
-            html += `<div class="shift-info request-pending shift-grouped shift-grouped-no-name">${lines}</div>`;
+            html += `<div class="shift-info request-pending shift-grouped shift-grouped-no-name"><span class="shift-status-label">未承認</span>${chips}</div>`;
         }
 
-        // 承認済みシフト（緑、欠勤は取消線）- 1日分まとめて縦並び
+        // 承認済みシフト（緑、欠勤は取消線）- 1日分まとめて
         const approvedItems = dayRequests
             .filter(req => req.status === 'approved')
             .slice()
@@ -1256,27 +1252,26 @@ function generateManagementCalendar(year, month, requests, shifts) {
         if (approvedItems.length > 0) {
             const allAbsent = approvedItems.every(it => it.is_absent);
             const rowAbsentClass = allAbsent ? ' shift-absent' : '';
-            const label = allAbsent ? '(欠勤)' : (approvedItems.some(it => it.is_absent) ? '(承認/一部欠勤)' : '(承認)');
-            let lines = '';
-            approvedItems.forEach((req, idx) => {
+            const label = allAbsent ? '欠勤' : (approvedItems.some(it => it.is_absent) ? '承認/一部欠勤' : '承認');
+            let chips = '';
+            approvedItems.forEach(req => {
                 const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
                 const chipAbsent = (!allAbsent && req.is_absent) ? ' shift-time-chip-absent' : '';
-                const tail = idx === approvedItems.length - 1 ? ` <span class="shift-status-label">${label}</span>` : '';
-                lines += `<div class="shift-line"><span class="shift-time-chip${chipAbsent}" onclick="event.stopPropagation(); openMgmtModal('request', '${req.id}')">${timeSlot}</span>${tail}</div>`;
+                chips += `<button type="button" class="shift-time-chip${chipAbsent}" onclick="event.stopPropagation(); openMgmtModal('request', '${req.id}')">${timeSlot}</button>`;
             });
-            html += `<div class="shift-info shift-confirmed${rowAbsentClass} shift-grouped shift-grouped-no-name">${lines}</div>`;
+            html += `<div class="shift-info shift-confirmed${rowAbsentClass} shift-grouped shift-grouped-no-name"><span class="shift-status-label">${label}</span>${chips}</div>`;
         }
 
-        // 確定シフト（緑）- 1日分まとめて縦並び
+        // 確定シフト（緑）- 1日分まとめて
         const confirmedItems = dayShifts
             .slice()
             .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
         if (confirmedItems.length > 0) {
-            let lines = '';
+            let chips = '';
             confirmedItems.forEach(shift => {
-                lines += `<div class="shift-line"><span class="shift-time-chip" onclick="event.stopPropagation(); openMgmtModal('shift', '${shift.id}')">${shift.start_time}-${shift.end_time}</span></div>`;
+                chips += `<button type="button" class="shift-time-chip" onclick="event.stopPropagation(); openMgmtModal('shift', '${shift.id}')">${shift.start_time}-${shift.end_time}</button>`;
             });
-            html += `<div class="shift-info shift-confirmed shift-grouped shift-grouped-no-name">${lines}</div>`;
+            html += `<div class="shift-info shift-confirmed shift-grouped shift-grouped-no-name"><span class="shift-status-label">確定</span>${chips}</div>`;
         }
         
         html += '</div>';

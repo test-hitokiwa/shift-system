@@ -610,33 +610,33 @@ function generateCalendar(year, month, shifts, requests) {
         html += `<div class="${classNames.join(' ')}" onclick="${!hasData && !isWeekend ? `openStaffQuickCreate('${dateStr}')` : ''}" style="${!hasData && !isWeekend ? 'cursor: pointer;' : ''}">`;
         html += `<div class="day-number">${day}</div>`;
         
-        // 確定シフト（緑）- 1日分まとめて縦並び
+        // 確定シフト（緑）- 1日分まとめて
         if (dayShifts.length > 0) {
             const sorted = dayShifts.slice().sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
-            let lines = '';
+            let chips = '';
             sorted.forEach(shift => {
-                lines += `<div class="shift-line"><span class="shift-time-chip" onclick="event.stopPropagation(); showShiftDetail('${shift.id}')" title="確定シフト">${shift.start_time}-${shift.end_time}</span></div>`;
+                chips += `<button type="button" class="shift-time-chip" onclick="event.stopPropagation(); showShiftDetail('${shift.id}')" title="確定シフト">${shift.start_time}-${shift.end_time}</button>`;
             });
-            html += `<div class="shift-info shift-confirmed shift-grouped shift-grouped-no-name">${lines}</div>`;
+            html += `<div class="shift-info shift-confirmed shift-grouped shift-grouped-no-name">${chips}</div>`;
         }
 
-        // 希望シフト（黄色）- 1日分まとめて縦並び
+        // 希望シフト（黄色）- 1日分まとめて
         if (dayRequests.length > 0) {
             const sorted = dayRequests.slice().sort((a, b) => {
                 const aStart = (a.time_slots && a.time_slots[0] || '').split('-')[0] || '';
                 const bStart = (b.time_slots && b.time_slots[0] || '').split('-')[0] || '';
                 return aStart.localeCompare(bStart);
             });
-            let lines = '';
+            let chips = '';
             sorted.forEach(request => {
                 const timeSlot = request.time_slots && request.time_slots.length > 0 ? request.time_slots[0] : '';
                 const clickHandler = request.status === 'pending'
                     ? `openRequestEditModal('${request.id}')`
                     : `showRequestDetail('${request.id}')`;
                 const title = request.status === 'pending' ? '未承認（クリックで編集）' : '承認済み（変更不可）';
-                lines += `<div class="shift-line"><span class="shift-time-chip" onclick="event.stopPropagation(); ${clickHandler}" title="${title}">${timeSlot}</span></div>`;
+                chips += `<button type="button" class="shift-time-chip" onclick="event.stopPropagation(); ${clickHandler}" title="${title}">${timeSlot}</button>`;
             });
-            html += `<div class="shift-info request-pending shift-grouped shift-grouped-no-name">${lines}</div>`;
+            html += `<div class="shift-info request-pending shift-grouped shift-grouped-no-name">${chips}</div>`;
         }
         
         html += '</div>';
