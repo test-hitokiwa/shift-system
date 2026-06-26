@@ -848,21 +848,53 @@ textarea.form-control {
     box-shadow: 0 2px 4px rgba(149, 117, 205, 0.4) !important;
 }
 
-/* 中抜けシフトを 1 行にまとめた場合の時刻チップ */
-.shift-info .shift-time-chip {
+/* 中抜けシフトを縦並びで表示するグループ */
+.shift-info.shift-grouped {
+    display: block;
+    flex-direction: initial;
+    text-align: left;
+    padding: 4px 6px;
+    line-height: 1.4;
+    min-height: 22px;
+    overflow: visible;
+    text-overflow: clip;
+}
+.shift-info.shift-grouped .shift-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+.shift-info.shift-grouped .shift-name {
+    flex-shrink: 0;
+}
+/* 2 行目以降の名前は非表示にしつつスペースは確保（時刻を真下に揃える） */
+.shift-info.shift-grouped .shift-name-placeholder {
+    visibility: hidden;
+}
+/* 名前を出さないバリアント（管理カレンダー、スタッフ用） */
+.shift-info.shift-grouped-no-name .shift-line {
+    justify-content: flex-start;
+}
+.shift-info.shift-grouped .shift-time-chip {
     cursor: pointer;
-    padding: 0 2px;
-    border-radius: 2px;
+    padding: 0 3px;
+    border-radius: 3px;
     transition: background 0.15s ease;
     white-space: nowrap;
     display: inline-block;
 }
-.shift-info .shift-time-chip:hover {
-    background: rgba(255, 255, 255, 0.3);
+.shift-info.shift-grouped .shift-time-chip:hover {
+    background: rgba(255, 255, 255, 0.32);
 }
-.shift-info .shift-time-chip-absent {
+.shift-info.shift-grouped .shift-time-chip-absent {
     text-decoration: line-through;
     opacity: 0.85;
+}
+.shift-info.shift-grouped .shift-status-label {
+    font-size: 0.9em;
+    opacity: 0.95;
 }
 
 /* 複数日付選択用カレンダー */
@@ -1091,6 +1123,66 @@ textarea.form-control {
 
 .week-total-value.confirmed {
     color: #28a745; /* 承認済みは緑色 */
+}
+
+/* =========================
+   管理者ページ（PC 前提）：全体的に余裕のあるサイズ
+   モバイル幅 (≤ 768px) では下の @media ルールが優先される
+   ========================= */
+@media (min-width: 769px) {
+    body.admin-page .container {
+        max-width: 1400px;
+    }
+
+    body.admin-page .calendar-day {
+        min-height: 120px;
+        max-height: 380px;
+        padding: 10px 8px;
+    }
+
+    body.admin-page .calendar-day-header {
+        font-size: 14px;
+        padding: 10px 4px;
+    }
+
+    body.admin-page .day-number {
+        font-size: 16px;
+        margin-bottom: 6px;
+        padding-bottom: 5px;
+    }
+
+    body.admin-page .shift-info {
+        font-size: 12px;
+        padding: 4px 6px;
+        min-height: 22px;
+    }
+
+    body.admin-page .shift-info.shift-grouped {
+        padding: 5px 7px;
+        line-height: 1.5;
+    }
+
+    body.admin-page .calendar-grid {
+        gap: 8px;
+    }
+
+    body.admin-page .tabs {
+        gap: 6px;
+    }
+
+    body.admin-page .tab {
+        font-size: 15px;
+        padding: 12px 18px;
+    }
+
+    body.admin-page .calendar-header {
+        font-size: 20px;
+    }
+
+    body.admin-page .week-total-card {
+        min-width: 160px;
+        padding: 12px 14px;
+    }
 }
 
 @media (max-width: 768px) {
