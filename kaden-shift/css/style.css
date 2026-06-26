@@ -304,14 +304,14 @@ textarea.form-control {
 }
 
 .tab.active {
-    background: white;
-    color: #4f46e5;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.04);
+    background: linear-gradient(135deg, var(--indigo-500) 0%, var(--violet-500) 100%);
+    color: white;
+    box-shadow: 0 3px 10px rgba(99, 102, 241, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .tab:hover:not(.active) {
-    color: #334155;
-    background: rgba(255, 255, 255, 0.5);
+    color: var(--indigo-700);
+    background: white;
 }
 
 /* タイムスロット選択 */
