@@ -1239,7 +1239,7 @@ function generateRequestCalendar(year, month, requests) {
             userGroups.forEach(group => {
                 let chips = '';
                 group.items.forEach(req => {
-                    const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
+                    const timeSlot = formatTimeSlotsDisplay(req);
                     chips += `<button type="button" class="shift-time-chip" onclick="event.stopPropagation(); openRequestDetail('${req.id}')">${timeSlot}</button>`;
                 });
                 html += `<div class="shift-info request-pending shift-grouped"><span class="shift-name">${group.user_name}</span>${chips}</div>`;
@@ -1320,7 +1320,7 @@ function generateApprovedCalendar(year, month, approvedRequests, confirmedShifts
                 const rowAbsentClass = allAbsent ? ' shift-absent' : '';
                 let chips = '';
                 group.items.forEach(req => {
-                    const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
+                    const timeSlot = formatTimeSlotsDisplay(req);
                     const chipAbsent = (!allAbsent && req.is_absent) ? ' shift-time-chip-absent' : '';
                     chips += `<button type="button" class="shift-time-chip${chipAbsent}" onclick="event.stopPropagation(); openRequestDetail('${req.id}')">${timeSlot}</button>`;
                 });
@@ -1436,7 +1436,7 @@ function generateManagementCalendar(year, month, requests, shifts) {
         if (pendingItems.length > 0) {
             let chips = '';
             pendingItems.forEach(req => {
-                const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
+                const timeSlot = formatTimeSlotsDisplay(req);
                 chips += `<button type="button" class="shift-time-chip" onclick="event.stopPropagation(); openMgmtModal('request', '${req.id}')">${timeSlot}</button>`;
             });
             html += `<div class="shift-info request-pending shift-grouped shift-grouped-no-name"><span class="shift-status-label">未承認</span>${chips}</div>`;
@@ -1453,7 +1453,7 @@ function generateManagementCalendar(year, month, requests, shifts) {
             const label = allAbsent ? '欠勤' : (approvedItems.some(it => it.is_absent) ? '承認/一部欠勤' : '承認');
             let chips = '';
             approvedItems.forEach(req => {
-                const timeSlot = req.time_slots && req.time_slots.length > 0 ? req.time_slots[0] : '';
+                const timeSlot = formatTimeSlotsDisplay(req);
                 const chipAbsent = (!allAbsent && req.is_absent) ? ' shift-time-chip-absent' : '';
                 chips += `<button type="button" class="shift-time-chip${chipAbsent}" onclick="event.stopPropagation(); openMgmtModal('request', '${req.id}')">${timeSlot}</button>`;
             });
@@ -1734,6 +1734,14 @@ async function openMgmtModal(type, id) {
             const [start, end] = timeSlot.split('-');
             setHourMin(start || '', 'mgmtStartHour', 'mgmtStartMin');
             setHourMin(end || '', 'mgmtEndHour', 'mgmtEndMin');
+            // 中抜け（2件目以降の time_slots）を行として復元
+            clearNakanukeRows('mgmtNakanukeContainer');
+            if (data.time_slots && data.time_slots.length > 1) {
+                for (let si = 1; si < data.time_slots.length; si++) {
+                    const parts = (data.time_slots[si] || '').split('-');
+                    addNakanukeRow('mgmtNakanukeContainer', parts[0] || '', parts[1] || '');
+                }
+            }
             document.getElementById('mgmtNotes').value = data.notes || '';
             
             const isAbsent = !!data.is_absent;
@@ -1797,6 +1805,7 @@ async function openMgmtModal(type, id) {
 // シフト管理モーダルを閉じる
 function closeMgmtModal() {
     document.getElementById('mgmtModal').style.display = 'none';
+    clearNakanukeRows('mgmtNakanukeContainer');
 }
 
 // 空白日クリックでクイック作成モーダルを開く
@@ -1828,16 +1837,18 @@ function openQuickCreateForDate(dateStr) {
 // 中抜け（休憩・分割シフト）の行を管理
 let nakanukeRowCount = 0;
 
-// 中抜けの時刻入力行を1行追加する
-function addNakanukeRow() {
-    const container = document.getElementById('nakanukeContainer');
+// 中抜けの時刻入力行を1行追加する（containerId を省略すると新規作成モーダル用）
+function addNakanukeRow(containerId, startVal, endVal) {
+    containerId = containerId || 'nakanukeContainer';
+    const container = document.getElementById(containerId);
     if (!container) return;
     nakanukeRowCount++;
-    const rowId = 'nakanukeRow_' + nakanukeRowCount;
-    const startHourId = 'nakanukeStartHour_' + nakanukeRowCount;
-    const startMinId = 'nakanukeStartMin_' + nakanukeRowCount;
-    const endHourId = 'nakanukeEndHour_' + nakanukeRowCount;
-    const endMinId = 'nakanukeEndMin_' + nakanukeRowCount;
+    const n = nakanukeRowCount;
+    const rowId = containerId + '_row_' + n;
+    const startHourId = containerId + '_startHour_' + n;
+    const startMinId = containerId + '_startMin_' + n;
+    const endHourId = containerId + '_endHour_' + n;
+    const endMinId = containerId + '_endMin_' + n;
 
     const row = document.createElement('div');
     row.id = rowId;
@@ -1865,6 +1876,10 @@ function addNakanukeRow() {
     // 時・分の選択肢を生成（既存の開始/終了時刻と同じ）
     generateHourMinOptions(startHourId, startMinId);
     generateHourMinOptions(endHourId, endMinId);
+
+    // 既存データから復元する場合は初期値をセット
+    if (startVal) setHourMin(startVal, startHourId, startMinId);
+    if (endVal) setHourMin(endVal, endHourId, endMinId);
 }
 
 // 中抜けの行を削除する
@@ -1874,15 +1889,16 @@ function removeNakanukeRow(rowId) {
 }
 
 // 中抜けのすべての行をクリアする
-function clearNakanukeRows() {
-    const container = document.getElementById('nakanukeContainer');
+function clearNakanukeRows(containerId) {
+    containerId = containerId || 'nakanukeContainer';
+    const container = document.getElementById(containerId);
     if (container) container.innerHTML = '';
-    nakanukeRowCount = 0;
 }
 
 // 入力済みの中抜け時間帯を "HH:MM-HH:MM" の配列で取得する
-function getNakanukeSlots() {
-    const container = document.getElementById('nakanukeContainer');
+function getNakanukeSlots(containerId) {
+    containerId = containerId || 'nakanukeContainer';
+    const container = document.getElementById(containerId);
     if (!container) return [];
     const slots = [];
     container.querySelectorAll('.nakanuke-row').forEach(row => {
@@ -1895,6 +1911,13 @@ function getNakanukeSlots() {
         }
     });
     return slots;
+}
+
+// 中抜けあり（time_slots が2件以上）の場合に2行表示用のHTMLを返す。
+// 例: ["09:30-12:00","16:30-18:00"] -> "09:30-12:00<br>16:30-18:00"
+function formatTimeSlotsDisplay(req) {
+    if (!req || !req.time_slots || req.time_slots.length === 0) return '';
+    return req.time_slots.join('<br>');
 }
 
 function closeQuickCreateModal() {
@@ -1996,7 +2019,7 @@ async function saveMgmtShift() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     id: id,
-                    time_slots: [`${startTime}-${endTime}`],
+                    time_slots: [`${startTime}-${endTime}`, ...getNakanukeSlots('mgmtNakanukeContainer')],
                     notes: notes
                 })
             });
