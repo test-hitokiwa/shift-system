@@ -145,40 +145,51 @@ try {
             echo json_encode(['error' => 'User ID is required']);
             exit();
         }
-        
+
         $input = json_decode(file_get_contents('php://input'), true);
         $now = getCurrentTimestamp();
-        
+
         // 既存データ取得
         $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ? AND deleted = 0");
         $stmt->execute([$userId]);
         $existing = $stmt->fetch();
-        
+
         if (!$existing) {
             http_response_code(404);
             echo json_encode(['error' => 'User not found']);
             exit();
         }
-        
+
         // 更新するフィールドのみ変更
         $name = $input['name'] ?? $existing['name'];
         $role = $input['role'] ?? $existing['role'];
         $phone = $input['phone'] ?? $existing['phone'];
         $password = $input['password'] ?? $existing['password'];
-        
+
+        // 退職日 / 別営業: 明示的に null も受け付ける
+        $retirementDate = array_key_exists('retirement_date', $input)
+            ? ($input['retirement_date'] ?: null)
+            : ($existing['retirement_date'] ?? null);
+        $branch = array_key_exists('branch', $input)
+            ? ($input['branch'] ?: null)
+            : ($existing['branch'] ?? null);
+
         $stmt = $pdo->prepare("
-            UPDATE users 
-            SET name = ?, role = ?, phone = ?, password = ?, updated_at = ?
+            UPDATE users
+            SET name = ?, role = ?, phone = ?, password = ?,
+                retirement_date = ?, branch = ?, updated_at = ?
             WHERE id = ?
         ");
-        $stmt->execute([$name, $role, $phone, $password, $now, $userId]);
-        
+        $stmt->execute([$name, $role, $phone, $password, $retirementDate, $branch, $now, $userId]);
+
         echo json_encode([
             'id' => $userId,
             'name' => $name,
             'role' => $role,
             'phone' => $phone,
             'password' => $password,
+            'retirement_date' => $retirementDate,
+            'branch' => $branch,
             'updated_at' => $now
         ]);
     }

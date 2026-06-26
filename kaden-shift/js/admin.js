@@ -732,19 +732,26 @@ async function loadUsersList() {
         const users = result.data;
         const container = document.getElementById('usersList');
         
-        container.innerHTML = '<h3 style="margin: 20px 0;">登録ユーザー一覧</h3>' + users.map(user => `
-            <div class="request-card">
+        container.innerHTML = '<h3 style="margin: 20px 0;">登録ユーザー一覧</h3>' + users.map(user => {
+            const isRetired = !!user.retirement_date;
+            const retiredBadge = isRetired
+                ? `<span style="background: #e2e8f0; color: #475569; padding: 2px 8px; border-radius: 999px; font-size: 12px; margin-left: 8px;">退職 (${user.retirement_date})</span>`
+                : '';
+            return `
+            <div class="request-card" ${isRetired ? 'style="opacity: 0.7;"' : ''}>
                 <div class="request-header">
-                    <span class="request-user">${user.name}</span>
+                    <span class="request-user">${user.name}${retiredBadge}</span>
                     <span>${user.role === 'admin' ? '管理者' : 'スタッフ'}</span>
                 </div>
                 <div style="margin: 8px 0;">パスワード: ${user.password}</div>
                 <div class="request-actions">
                     <button class="btn btn-primary btn-small" onclick="window.editUser('${user.id}')">編集</button>
+                    <button class="btn btn-warning btn-small" onclick="window.openRetirementModal('${user.id}', '${(user.name || '').replace(/'/g, "\\'")}', '${user.retirement_date || ''}')">${isRetired ? '退職日変更' : '退職'}</button>
                     <button class="btn btn-danger btn-small" onclick="window.deleteUser('${user.id}')">削除</button>
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
     } catch (error) {
         console.error('エラー:', error);
     }
@@ -973,6 +980,138 @@ window.deleteUser = async function(userId) {
         showToast('ユーザーの削除に失敗しました', 'error');
     }
 }
+
+// ===== 退職処理 =====
+window.openRetirementModal = function(userId, userName, currentDate) {
+    document.getElementById('retirementUserId').value = userId;
+    document.getElementById('retirementUserName').textContent = userName;
+    // 既に退職日が入っていればその値、なければ今日
+    const today = new Date();
+    const defaultDate = currentDate || today.toISOString().slice(0, 10);
+    document.getElementById('retirementDate').value = defaultDate;
+    document.getElementById('retirementModal').style.display = 'flex';
+};
+
+function closeRetirementModal() {
+    document.getElementById('retirementModal').style.display = 'none';
+}
+
+async function confirmRetirement() {
+    const userId = document.getElementById('retirementUserId').value;
+    const retirementDate = document.getElementById('retirementDate').value;
+    const userName = document.getElementById('retirementUserName').textContent;
+
+    if (!retirementDate) {
+        showToast('退職日を入力してください', 'error');
+        return;
+    }
+    if (!confirm(`${userName} さんを ${retirementDate} で退職処理します。\n${retirementDate} の翌日以降のシフトはすべて削除されます。よろしいですか？`)) {
+        return;
+    }
+
+    try {
+        // 1) ユーザーに退職日をセット
+        const patchRes = await fetch(`${API_BASE_URL}/tables/users/${userId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ retirement_date: retirementDate })
+        });
+        if (!patchRes.ok) throw new Error('ユーザーの更新に失敗しました');
+
+        // 2) 退職日の翌日以降のシフトを削除
+        const { requests: requestsData, shifts: shiftsData } = await getCachedData();
+        const cutoff = retirementDate; // YYYY-MM-DD 文字列比較で OK
+        const futureRequests = requestsData.filter(r => r.user_id === userId && r.date > cutoff);
+        const futureShifts = shiftsData.filter(s => s.user_id === userId && s.date > cutoff);
+
+        const deletePromises = [];
+        futureRequests.forEach(r => {
+            deletePromises.push(fetch(`${API_BASE_URL}/tables/shift_requests_update/delete/${r.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: r.id, action: 'delete' })
+            }));
+        });
+        futureShifts.forEach(s => {
+            deletePromises.push(fetch(`${API_BASE_URL}/tables/shifts_update/delete/${s.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: s.id, action: 'delete' })
+            }));
+        });
+        await Promise.all(deletePromises);
+
+        showToast(`${userName} さんの退職処理が完了しました (削除シフト ${deletePromises.length} 件)`, 'success');
+        closeRetirementModal();
+        clearCache();
+        loadUsersList();
+        loadUsers();
+        loadCalendar();
+    } catch (error) {
+        console.error('退職処理エラー:', error);
+        showToast('退職処理に失敗しました: ' + error.message, 'error');
+    }
+}
+
+async function cancelRetirement() {
+    const userId = document.getElementById('retirementUserId').value;
+    const userName = document.getElementById('retirementUserName').textContent;
+    if (!confirm(`${userName} さんの退職を取り消しますか？\n(削除されたシフトは復元されません)`)) return;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/tables/users/${userId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ retirement_date: null })
+        });
+        if (!res.ok) throw new Error('更新に失敗しました');
+        showToast('退職を取り消しました', 'success');
+        closeRetirementModal();
+        clearCache();
+        loadUsersList();
+        loadUsers();
+    } catch (error) {
+        showToast('取消に失敗しました: ' + error.message, 'error');
+    }
+}
+
+// ===== 別営業 (branch) 設定 =====
+window.openBranchModal = function(userId, userName) {
+    document.getElementById('branchUserId').value = userId;
+    document.getElementById('branchUserName').textContent = userName;
+    document.getElementById('branchModal').style.display = 'flex';
+};
+
+function closeBranchModal() {
+    document.getElementById('branchModal').style.display = 'none';
+}
+
+async function setBranch(branchValue) {
+    const userId = document.getElementById('branchUserId').value;
+    try {
+        const res = await fetch(`${API_BASE_URL}/tables/users/${userId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ branch: branchValue || null })
+        });
+        if (!res.ok) throw new Error('更新に失敗しました');
+        showToast(branchValue ? `別営業 ${branchValue} に設定しました` : '別営業を解除しました', 'success');
+        closeBranchModal();
+        clearCache();
+        calculatePeriodTotals();
+    } catch (error) {
+        showToast('設定に失敗しました: ' + error.message, 'error');
+    }
+}
+
+// 別営業ボタンクリックの委譲ハンドラ
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('branchOptions')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-branch-option');
+        if (!btn) return;
+        setBranch(btn.dataset.branch);
+    });
+});
 
 // カレンダーを読み込む
 async function loadCalendar() {
@@ -1433,7 +1572,11 @@ async function calculatePeriodTotals() {
     }
 
     try {
-        const { requests: requestsData, shifts: shiftsData } = await getCachedData();
+        const { requests: requestsData, shifts: shiftsData, users: usersData } = await getCachedData();
+
+        // user_id -> { name, branch } マップ
+        const userMap = {};
+        usersData.forEach(u => { userMap[u.id] = { name: u.name, branch: u.branch || null }; });
 
         // 期間内のデータをフィルター
         const filteredRequests = requestsData.filter(r =>
@@ -1446,85 +1589,112 @@ async function calculatePeriodTotals() {
             (staffFilter === 'all' || s.user_id === staffFilter)
         );
 
-        // スタッフごとに集計
+        // user_id ごとに集計 (名前ベースだと同名の人を分離できないため id ベース)
         const totals = {};
+        const ensure = (userId, name) => {
+            if (!totals[userId]) {
+                totals[userId] = {
+                    user_id: userId,
+                    name: name,
+                    branch: (userMap[userId] && userMap[userId].branch) || null,
+                    pending: 0, approved: 0, absent: 0
+                };
+            }
+            return totals[userId];
+        };
 
         filteredRequests.forEach(req => {
-            if (!totals[req.user_name]) {
-                totals[req.user_name] = { pending: 0, approved: 0, absent: 0 };
-            }
+            const t = ensure(req.user_id, req.user_name);
             if (req.time_slots && req.time_slots.length > 0) {
                 const [start, end] = req.time_slots[0].split('-');
                 if (start && end) {
                     const hours = calculateHours(start, end);
                     if (req.status === 'approved') {
-                        totals[req.user_name].approved += hours;
-                        if (req.is_absent) {
-                            totals[req.user_name].absent += hours;
-                        }
+                        t.approved += hours;
+                        if (req.is_absent) t.absent += hours;
                     } else {
-                        totals[req.user_name].pending += hours;
+                        t.pending += hours;
                     }
                 }
             }
         });
 
-        // shifts テーブルのデータもカウント（現状未使用だが互換のため）
         filteredShifts.forEach(shift => {
-            if (!totals[shift.user_name]) {
-                totals[shift.user_name] = { pending: 0, approved: 0, absent: 0 };
-            }
+            const t = ensure(shift.user_id, shift.user_name);
             if (shift.start_time && shift.end_time) {
-                totals[shift.user_name].approved += calculateHours(shift.start_time, shift.end_time);
+                t.approved += calculateHours(shift.start_time, shift.end_time);
             }
         });
 
-        // 結果を表示
         const container = document.getElementById('periodTotalsResult');
-        const entries = Object.entries(totals);
+        const entries = Object.values(totals);
 
         if (entries.length === 0) {
             container.innerHTML = '<p style="color: #6c757d; text-align: center;">該当期間のシフトデータがありません</p>';
             return;
         }
 
-        // 全体合計
-        let totalPending = 0;
-        let totalApproved = 0;
-        let totalAbsent = 0;
-        entries.forEach(([, v]) => {
-            totalPending += v.pending;
-            totalApproved += v.approved;
-            totalAbsent += v.absent || 0;
+        // branch ごとにグループ分け (null = 通常営業)
+        const groups = new Map();
+        entries.forEach(e => {
+            const key = e.branch || '__main__';
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(e);
         });
+        // ソート: 通常営業を先に、その後 A→G 順
+        const groupOrder = ['__main__', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
 
-        let html = '<table class="period-totals-table">';
-        html += '<thead><tr><th>スタッフ</th><th>未承認</th><th>承認済み</th><th>合計</th><th>実出勤</th></tr></thead>';
-        html += '<tbody>';
-        entries.sort((a, b) => a[0].localeCompare(b[0]));
-        entries.forEach(([name, v]) => {
-            const absent = v.absent || 0;
-            const actual = v.approved - absent;
-            html += `<tr>
-                <td>${name}</td>
-                <td>${v.pending.toFixed(1)}h</td>
-                <td>${v.approved.toFixed(1)}h</td>
-                <td><strong>${(v.pending + v.approved).toFixed(1)}h</strong></td>
-                <td><strong>${actual.toFixed(1)}h</strong>${absent > 0 ? ` <span style="color: #dc3545; font-size: 11px;">(-${absent.toFixed(1)}h)</span>` : ''}</td>
-            </tr>`;
-        });
-        if (entries.length > 1) {
-            const totalActual = totalApproved - totalAbsent;
-            html += `<tr class="period-totals-total">
-                <td><strong>合計</strong></td>
-                <td><strong>${totalPending.toFixed(1)}h</strong></td>
-                <td><strong>${totalApproved.toFixed(1)}h</strong></td>
-                <td><strong>${(totalPending + totalApproved).toFixed(1)}h</strong></td>
-                <td><strong>${totalActual.toFixed(1)}h</strong>${totalAbsent > 0 ? ` <span style="color: #dc3545; font-size: 11px;">(-${totalAbsent.toFixed(1)}h)</span>` : ''}</td>
-            </tr>`;
+        // 1 グループ分のテーブル HTML を組み立てる
+        const buildTable = (groupKey, items) => {
+            items.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+            let totalPending = 0, totalApproved = 0, totalAbsent = 0;
+            items.forEach(v => {
+                totalPending += v.pending;
+                totalApproved += v.approved;
+                totalAbsent += v.absent || 0;
+            });
+
+            const heading = groupKey === '__main__'
+                ? '<h4 style="margin: 16px 0 8px;">通常営業</h4>'
+                : `<h4 style="margin: 24px 0 8px; color: var(--indigo-700);">別営業 ${groupKey}</h4>`;
+
+            let table = heading + '<table class="period-totals-table">';
+            table += '<thead><tr><th></th><th>スタッフ</th><th>未承認</th><th>承認済み</th><th>合計</th><th>実出勤</th></tr></thead><tbody>';
+            items.forEach(v => {
+                const absent = v.absent || 0;
+                const actual = v.approved - absent;
+                const branchBadge = v.branch
+                    ? `<span class="branch-badge">別営業${v.branch}</span>`
+                    : '';
+                const safeName = (v.name || '').replace(/'/g, "\\'");
+                table += `<tr>
+                    <td><button type="button" class="btn btn-branch-toggle" onclick="window.openBranchModal('${v.user_id}', '${safeName}')" title="別営業を設定">別営業${branchBadge}</button></td>
+                    <td>${v.name}</td>
+                    <td>${v.pending.toFixed(1)}h</td>
+                    <td>${v.approved.toFixed(1)}h</td>
+                    <td><strong>${(v.pending + v.approved).toFixed(1)}h</strong></td>
+                    <td><strong>${actual.toFixed(1)}h</strong>${absent > 0 ? ` <span style="color: #dc3545; font-size: 11px;">(-${absent.toFixed(1)}h)</span>` : ''}</td>
+                </tr>`;
+            });
+            if (items.length > 1) {
+                const totalActual = totalApproved - totalAbsent;
+                table += `<tr class="period-totals-total">
+                    <td></td>
+                    <td><strong>合計</strong></td>
+                    <td><strong>${totalPending.toFixed(1)}h</strong></td>
+                    <td><strong>${totalApproved.toFixed(1)}h</strong></td>
+                    <td><strong>${(totalPending + totalApproved).toFixed(1)}h</strong></td>
+                    <td><strong>${totalActual.toFixed(1)}h</strong>${totalAbsent > 0 ? ` <span style="color: #dc3545; font-size: 11px;">(-${totalAbsent.toFixed(1)}h)</span>` : ''}</td>
+                </tr>`;
+            }
+            table += '</tbody></table>';
+            return table;
+        };
+
+        let html = '';
+        for (const key of groupOrder) {
+            if (groups.has(key)) html += buildTable(key, groups.get(key));
         }
-        html += '</tbody></table>';
-
         container.innerHTML = html;
     } catch (error) {
         console.error('エラー:', error);
@@ -2236,8 +2406,12 @@ async function loadUnsubmittedUsers() {
                 .map(r => r.user_id)
         );
 
-        // 管理者以外のユーザーで提出が無い人を抽出
-        const staffUsers = usersData.filter(u => u.role !== 'admin');
+        // 管理者以外、かつ退職していないユーザーで提出が無い人を抽出
+        // 退職日が期間開始日より前 (= 期間中はすでに退職済) の人は除外
+        const staffUsers = usersData.filter(u =>
+            u.role !== 'admin' &&
+            !(u.retirement_date && u.retirement_date < startDate)
+        );
         const unsubmitted = staffUsers
             .filter(u => !submittedUserIds.has(u.id))
             .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));

@@ -213,6 +213,48 @@
         </div>
     </div>
 
+    <!-- 退職モーダル -->
+    <div id="retirementModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>退職処理</h3>
+            <input type="hidden" id="retirementUserId">
+            <p style="margin-bottom: 12px;"><strong id="retirementUserName"></strong> さんの退職日を入力してください。</p>
+            <p style="color: #6c757d; font-size: 13px; margin-bottom: 16px;">
+                ※ 退職日の<strong>翌日以降</strong>のシフトは自動削除されます。<br>
+                ※ シフト未提出者一覧にも上がらなくなります。
+            </p>
+            <div class="form-group">
+                <label for="retirementDate">退職日</label>
+                <input type="date" id="retirementDate" class="form-control">
+            </div>
+            <button class="btn btn-danger" onclick="confirmRetirement()">退職処理を実行</button>
+            <button class="btn btn-secondary" onclick="closeRetirementModal()">キャンセル</button>
+            <hr style="margin: 18px 0;">
+            <p style="color: #6c757d; font-size: 12px; margin-bottom: 8px;">既に退職済みの場合:</p>
+            <button class="btn btn-secondary" onclick="cancelRetirement()">退職を取り消す</button>
+        </div>
+    </div>
+
+    <!-- 別営業選択モーダル -->
+    <div id="branchModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>別営業の設定</h3>
+            <input type="hidden" id="branchUserId">
+            <p style="margin-bottom: 16px;"><strong id="branchUserName"></strong> さんを別営業に割り当てます。</p>
+            <div id="branchOptions" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;">
+                <button class="btn btn-branch-option" data-branch="A">A</button>
+                <button class="btn btn-branch-option" data-branch="B">B</button>
+                <button class="btn btn-branch-option" data-branch="C">C</button>
+                <button class="btn btn-branch-option" data-branch="D">D</button>
+                <button class="btn btn-branch-option" data-branch="E">E</button>
+                <button class="btn btn-branch-option" data-branch="F">F</button>
+                <button class="btn btn-branch-option" data-branch="G">G</button>
+                <button class="btn btn-branch-option" data-branch="">解除</button>
+            </div>
+            <button class="btn btn-secondary" onclick="closeBranchModal()">キャンセル</button>
+        </div>
+    </div>
+
     <!-- シフト編集モーダル -->
     <div id="shiftEditModal" class="modal" style="display: none;">
         <div class="modal-content">
