@@ -1128,19 +1128,18 @@ textarea.form-control {
     color: #495057;
 }
 
+/* .btn-small はサイズ指定のみ。色は .btn-primary / .btn-danger / .btn-secondary 等のバリアントに任せる */
 .btn-small {
-    background: #667eea;
-    color: white;
     border: none;
     padding: 5px 12px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
-    transition: background 0.3s;
+    transition: background 0.3s, transform 0.15s;
 }
 
 .btn-small:hover {
-    background: #5568d3;
+    transform: translateY(-1px);
 }
 
 .date-calendar {
