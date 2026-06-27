@@ -119,6 +119,95 @@ function generateTimeOptions() {
     });
 }
 
+// ===== 中抜け（出勤〜一時退勤 + 戻り〜退勤）対応 =====
+let staffNakanukeRowCount = 0;
+
+// 提出フォームの時刻と同じ選択肢を select に生成する
+function fillStaffTimeOptions(selectEl) {
+    const times = [];
+    for (let hour = 9; hour <= 18; hour++) {
+        if (hour === 9) {
+            times.push('09:30');
+        } else if (hour < 18) {
+            times.push(`${hour}:00`);
+            times.push(`${hour}:30`);
+        } else {
+            times.push('18:00');
+        }
+    }
+    selectEl.innerHTML = '<option value="">選択してください</option>';
+    times.forEach(time => {
+        const opt = document.createElement('option');
+        opt.value = time;
+        opt.textContent = time;
+        selectEl.appendChild(opt);
+    });
+}
+
+// 中抜けの行（戻り時間・退勤時間）を1行追加する
+function addStaffNakanukeRow(startVal, endVal) {
+    const container = document.getElementById('staffNakanukeContainer');
+    if (!container) return;
+    staffNakanukeRowCount++;
+    const n = staffNakanukeRowCount;
+    const rowId = 'staffNakanukeRow_' + n;
+    const startId = 'staffNakanukeStart_' + n;
+    const endId = 'staffNakanukeEnd_' + n;
+
+    const row = document.createElement('div');
+    row.id = rowId;
+    row.className = 'staff-nakanuke-row form-row';
+    row.style.cssText = 'align-items: flex-end; gap: 10px; margin-top: 10px;';
+    row.innerHTML =
+        '<div class="form-group">' +
+            '<label>戻り時間</label>' +
+            '<select id="' + startId + '" class="form-control"></select>' +
+        '</div>' +
+        '<div class="form-group">' +
+            '<label>退勤時間</label>' +
+            '<select id="' + endId + '" class="form-control"></select>' +
+        '</div>' +
+        '<button type="button" class="btn btn-danger btn-small" onclick="removeStaffNakanukeRow(\'' + rowId + '\')">削除</button>';
+
+    container.appendChild(row);
+
+    fillStaffTimeOptions(document.getElementById(startId));
+    fillStaffTimeOptions(document.getElementById(endId));
+
+    if (startVal) document.getElementById(startId).value = startVal;
+    if (endVal) document.getElementById(endId).value = endVal;
+}
+
+// 中抜けの行を削除する
+function removeStaffNakanukeRow(rowId) {
+    const row = document.getElementById(rowId);
+    if (row) row.remove();
+}
+
+// 中抜けのすべての行をクリアする
+function clearStaffNakanukeRows() {
+    const container = document.getElementById('staffNakanukeContainer');
+    if (container) container.innerHTML = '';
+}
+
+// 入力済みの中抜け時間帯（戻り〜退勤）を "HH:MM-HH:MM" の配列で取得する
+function getStaffNakanukeSlots() {
+    const container = document.getElementById('staffNakanukeContainer');
+    if (!container) return [];
+    const slots = [];
+    container.querySelectorAll('.staff-nakanuke-row').forEach(row => {
+        const selects = row.querySelectorAll('select');
+        if (selects.length < 2) return;
+        const startTime = selects[0].value;
+        const endTime = selects[1].value;
+        if (startTime && endTime) {
+            slots.push(`${startTime}-${endTime}`);
+        }
+    });
+    return slots;
+}
+
+
 // キャッシュされたデータを取得
 async function getCachedShiftData() {
     const now = Date.now();
@@ -406,7 +495,7 @@ async function submitRequest() {
                 user_id: currentUser.id,
                 user_name: currentUser.name,
                 date: date,
-                time_slots: [`${startTime}-${endTime}`],
+                time_slots: [`${startTime}-${endTime}`, ...getStaffNakanukeSlots()],
                 status: 'pending',
                 notes: notes
             };
